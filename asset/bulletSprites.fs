@@ -1,0 +1,23 @@
+precision mediump float;
+
+uniform sampler2D texture;
+
+varying vec2 vUv;
+varying vec2 vFrame;
+varying float vInstanceBrightness;
+varying vec3 vInstanceAuraColor;
+
+const float unit = 32.0 / 256.0;
+
+void main(void){
+  vec4 tc = texture2D(texture, vUv + vFrame * unit);
+
+  vec4 aura = vec4(vInstanceAuraColor, 0.0);
+  aura.a = (0.55 - length(vUv / unit - vec2(0.5))) * 1.5;
+
+  if (aura.a > tc.a) {
+    gl_FragColor = aura;
+  } else {
+    gl_FragColor = vec4(tc.rgb * vInstanceBrightness, tc.a);
+  }
+}

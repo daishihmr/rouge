@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, height=device-height, user-scalable=no, initial-scale=1, maximum-scale=1">
+</head>
+
+<body>
+  <script src="../src/gl-obj.js"></script>
+  <script>
+  var FILENAME = "./p64.obj";
+  // var FILENAME = "./test.obj";
+
+  window.onload = function() {
+
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        var data = xhr.responseText;
+        start(data);
+      }
+    };
+    xhr.open("GET", FILENAME);
+    xhr.send();
+  };
+  
+  var start = function(data) {
+    var obj = globj.ObjParser.parse(data);
+    console.log(obj);
+  };
+  </script>
+</body>
+
+</html>
