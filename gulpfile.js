@@ -45,7 +45,7 @@ gulp.task("uglify", function() {
 });
 
 gulp.task("lib", function() {
-  fs.copy("./phigl.js/build/phigl.js", "./lib/phigl.js");
+  fs.copy("./phigl/build/phigl.js", "./lib/phigl.js");
 });
 
 gulp.task("watch", function() {
