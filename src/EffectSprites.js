@@ -92,15 +92,15 @@ phina.namespace(function() {
           });
       });
       
-      console.log(this);
+      // console.log(this);
     },
     
     _createTexture: function() {
       var texture = phina.graphics.Canvas().setSize(512, 512);
       var context = texture.context;
       var g = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-      g.addColorStop(0.0, "rgba(255, 255, 255, 0.1)");
-      g.addColorStop(0.6, "rgba(255, 125,   0, 0.1)");
+      g.addColorStop(0.0, "rgba(255, 255, 255, 0.3)");
+      g.addColorStop(0.6, "rgba(255, 125,   0, 0.3)");
       g.addColorStop(1.0, "rgba(255,   0,   0, 0.0)");
       context.fillStyle = g;
       context.fillRect(0, 0, 64, 64);

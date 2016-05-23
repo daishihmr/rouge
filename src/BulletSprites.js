@@ -96,7 +96,7 @@ phina.namespace(function() {
           });
       });
       
-      console.log(this);
+      // console.log(this);
     },
     
     update: function() {

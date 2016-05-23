@@ -169,7 +169,7 @@ phina.namespace(function() {
           });
       });
       
-      console.log(this);
+      // console.log(this);
     },
     
     update: function() {
@@ -352,15 +352,15 @@ phina.namespace(function() {
           });
       });
       
-      console.log(this);
+      // console.log(this);
     },
     
     _createTexture: function() {
       var texture = phina.graphics.Canvas().setSize(512, 512);
       var context = texture.context;
       var g = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-      g.addColorStop(0.0, "rgba(255, 255, 255, 0.1)");
-      g.addColorStop(0.6, "rgba(255, 125,   0, 0.1)");
+      g.addColorStop(0.0, "rgba(255, 255, 255, 0.3)");
+      g.addColorStop(0.6, "rgba(255, 125,   0, 0.3)");
       g.addColorStop(1.0, "rgba(255,   0,   0, 0.0)");
       context.fillStyle = g;
       context.fillRect(0, 0, 64, 64);
@@ -394,6 +394,7 @@ phina.namespace(function() {
 
     domElement: null,
     gl: null,
+    terrain: null,
     effectSprites: null,
     bulletSprites: null,
 
@@ -414,8 +415,36 @@ phina.namespace(function() {
       var gl = this.gl;
       gl.clearColor(0.0, 0.0, 0.0, 0.0);
 
+      this.terrain = glb.Terrain(gl, extInstancedArrays, this.width, this.height);
       this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, this.width, this.height);
       this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, this.width, this.height);
+
+      var self = this;
+      var unit = 1.8;
+      Array.range(-5, 5).forEach(function(x) {
+        Array.range(-10, 10).forEach(function(z) {
+          var hex = self.getHex();
+          if (hex) {
+            hex
+              .spawn({
+                x: x * unit + z % 2,
+                y: Math.randfloat(-1.2, 1.2),
+                z: z * unit * 1 / Math.sqrt(3) * 1.5,
+                rotX: 0,
+                rotY: 0,
+                rotZ: 0,
+                scaleX: 1,
+                scaleY: 1,
+                scaleZ: 1,
+              })
+              .addChildTo(self);
+          }
+        });
+      });
+    },
+
+    getHex: function() {
+      return this.terrain.pool.shift();
     },
 
     getEffect: function() {
@@ -427,6 +456,7 @@ phina.namespace(function() {
     },
 
     update: function(app) {
+      this.terrain.update(app);
       this.effectSprites.update(app);
       this.bulletSprites.update(app);
 
@@ -437,17 +467,162 @@ phina.namespace(function() {
       var gl = this.gl;
 
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      this.terrain.render();
       this.effectSprites.render();
       this.bulletSprites.render();
       gl.flush();
 
       var image = this.domElement;
       canvas.context.drawImage(image, 0, 0, image.width, image.height, -this.width * this.originX, -this.height * this.originY, this.width, this.height);
-      
+
       // this.draw = function(){};
     },
 
   });
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.Hex", {
+    superClass: "phina.app.Element",
+
+    id: -1,
+    instanceData: null,
+
+    x: 0,
+    y: 0,
+    z: 0,
+    rotX: 0,
+    rotY: 0,
+    rotZ: 0,
+    scaleX: 0,
+    scaleY: 0,
+    scaleZ: 0,
+
+    init: function(id, instanceData, instanceStride) {
+      this.superInit();
+      this.id = id;
+      this.instanceData = instanceData;
+      this.instanceStride = instanceStride;
+    },
+
+    spawn: function(options) {
+      var id = this.id;
+      var instanceData = this.instanceData;
+      var instanceStride = this.instanceStride;
+      this.age = 0;
+
+      this.x = options.x;
+      this.y = options.y;
+      this.z = options.z;
+      this.rotX = options.rotX;
+      this.rotY = options.rotY;
+      this.rotZ = options.rotZ;
+      this.scaleX = options.scaleX;
+      this.scaleY = options.scaleY;
+      this.scaleZ = options.scaleZ;
+
+      instanceData[id * instanceStride + 0] = 1;
+      instanceData[id * instanceStride + 1] = this.x;
+      instanceData[id * instanceStride + 2] = this.y;
+      instanceData[id * instanceStride + 3] = this.z;
+      instanceData[id * instanceStride + 4] = this.rotX;
+      instanceData[id * instanceStride + 5] = this.rotY;
+      instanceData[id * instanceStride + 6] = this.rotZ;
+      instanceData[id * instanceStride + 7] = this.scaleX;
+      instanceData[id * instanceStride + 8] = this.scaleY;
+      instanceData[id * instanceStride + 9] = this.scaleZ;
+
+      return this;
+    },
+
+    update: function(app) {
+      var id = this.id;
+      var instanceData = this.instanceData;
+      var instanceStride = this.instanceStride;
+
+      this.z += 0.1;
+      if (10 * 1.8 * 1 / Math.sqrt(3) * 1.5 < this.z) this.z -= 10 * 1.8 * 1 / Math.sqrt(3) * 1.5 * 2;
+
+      instanceData[id * instanceStride + 1] = this.x;
+      instanceData[id * instanceStride + 2] = this.y;
+      instanceData[id * instanceStride + 3] = this.z;
+      instanceData[id * instanceStride + 4] = this.rotX;
+      instanceData[id * instanceStride + 5] = this.rotY;
+      instanceData[id * instanceStride + 6] = this.rotZ;
+      instanceData[id * instanceStride + 7] = this.scaleX;
+      instanceData[id * instanceStride + 8] = this.scaleY;
+      instanceData[id * instanceStride + 9] = this.scaleZ;
+
+      this.age += 1;
+    },
+  });
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.ObjAsset", {
+    superClass: "phina.asset.File",
+
+    init: function() {
+      this.superInit();
+    },
+
+    getIndices: function(objectName, groupName) {
+      objectName = objectName || "defaultObject";
+      groupName = groupName || "defaultGroup";
+
+      var obj = globj.ObjParser.parse(this.data)[objectName].groups[groupName];
+
+      var vertexSize = 0;
+      obj.faces.forEach(function(face) {
+        for (var i = 1; i < face.length - 1; i++) {
+          vertexSize += 3;
+        }
+      });
+
+      return Array.range(vertexSize);
+    },
+
+    getAttributeData: function(objectName, groupName) {
+      objectName = objectName || "defaultObject";
+      groupName = groupName || "defaultGroup";
+
+      var obj = globj.ObjParser.parse(this.data)[objectName].groups[groupName];
+
+      var trigons = [];
+      obj.faces.forEach(function(face) {
+        for (var i = 1; i < face.length - 1; i++) {
+          trigons.push(face[0]);
+          trigons.push(face[i + 0]);
+          trigons.push(face[i + 1]);
+        }
+      });
+
+      return trigons.map(function(vertex, i) {
+        var p = obj.positions[vertex.position - 1];
+        var t = obj.texCoords[vertex.texCoord - 1];
+        var n = obj.normals[vertex.normal - 1];
+        return [
+          // position
+          p.x, p.y, p.z,
+          // texCoord
+          t.u, t.v,
+          // normal
+          n.x, n.y, n.z
+        ];
+      }).flatten();
+    },
+  });
+
+  phina.asset.AssetLoader.assetLoadFunctions["obj"] = function(key, path) {
+    var shader = glb.ObjAsset();
+    return shader.load({
+      path: path,
+    });
+  };
 
 });
 
@@ -473,6 +648,91 @@ phina.namespace(function() {
 
   });
   
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.Terrain", {
+    superClass: "phigl.InstancedDrawable",
+
+    instanceData: null,
+    pool: null,
+    _count: 200,
+
+    init: function(gl, ext, w, h) {
+      this.superInit(gl, ext);
+
+      var obj = phina.asset.AssetManager.get("obj", "test.obj");
+
+      this
+        .setProgram(phigl.Program(gl).attach("terrain.vs").attach("terrain.fs").link())
+        .setIndexValues(obj.getIndices("Cylinder"))
+        .setAttributes("position", "uv", "normal")
+        .setAttributeData(obj.getAttributeData("Cylinder"))
+        .setInstanceAttributes(
+          "instanceVisible",
+          "instancePosition",
+          "instanceRotation",
+          "instanceScale"
+        )
+        .setUniforms(
+          "vpMatrix",
+          "lightDirection",
+          "diffuseColor",
+          "ambientColor"
+        );
+
+      var instanceStride = this.instanceStride / 4;
+
+      var instanceData = this.instanceData = [];
+      for (var i = 0; i < this._count; i++) {
+        instanceData.push(
+          // visible
+          0,
+          // position
+          0, 0, 0,
+          // rotation
+          0, 0, 0,
+          // scale
+          1, 1, 1
+        );
+      }
+      this.setInstanceAttributeData(instanceData);
+
+      this.uniforms.lightDirection.value = [1, 1, 1];
+      this.uniforms.diffuseColor.value = [0.22 * 2, 0.22, 0.22, 1.0];
+      this.uniforms.ambientColor.value = [0.02, 0.02, 0.02, 1.0];
+
+      var vMatrix = mat4.lookAt(mat4.create(), [0, 20, 5], [0, 0, 0], [0, 1, 0]);
+      var pMatrix = mat4.perspective(mat4.create(), 45, w / h, 0.1, 10000);
+      this.uniforms.vpMatrix.value = mat4.mul(mat4.create(), pMatrix, vMatrix);
+
+      var self = this;
+      this.pool = Array.range(0, this._count).map(function(id) {
+        return glb.Hex(id, instanceData, instanceStride)
+          .on("removed", function() {
+            self.pool.push(this);
+            instanceData[this.id * instanceStride + 0] = 0;
+          });
+      });
+
+      // console.log(this);
+    },
+
+    update: function() {
+      this.setInstanceAttributeData(this.instanceData);
+    },
+
+    render: function() {
+      var gl = this.gl;
+      gl.enable(gl.BLEND);
+      gl.enable(gl.DEPTH_TEST);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+      this.draw(this._count);
+    },
+  });
+
 });
 
 //# sourceMappingURL=glbullethell.js.map

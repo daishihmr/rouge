@@ -46,6 +46,7 @@ gulp.task("uglify", function() {
 
 gulp.task("lib", function() {
   fs.copy("./phigl/build/phigl.js", "./lib/phigl.js");
+  fs.copy("./gl-obj.js/src/gl-obj.js", "./lib/gl-obj.js");
 });
 
 gulp.task("watch", function() {
