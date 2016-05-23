@@ -69,20 +69,20 @@
           }
         } else if (m = line.match(ptnPosition)) {
           g.positions.push({
-            x: ~~m[1],
-            y: ~~m[2],
-            z: ~~m[3],
+            x: +m[1],
+            y: +m[2],
+            z: +m[3],
           });
         } else if (m = line.match(ptnTexCoord)) {
           g.texCoords.push({
-            u: ~~m[1],
-            v: ~~m[2],
+            u: +m[1],
+            v: +m[2],
           });
         } else if (m = line.match(ptnNormal)) {
           g.normals.push({
-            x: ~~m[1],
-            y: ~~m[2],
-            z: ~~m[3],
+            x: +m[1],
+            y: +m[2],
+            z: +m[3],
           });
         } else if (line.match(ptnFace2)) {
           var face = [];

@@ -5,7 +5,7 @@ phina.namespace(function() {
     
     instanceData: null,
     pool: null,
-    _count: 50000,
+    _count: 1000,
 
     init: function(gl, ext, w, h) {
       this.superInit(gl, ext);

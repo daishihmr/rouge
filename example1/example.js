@@ -70,8 +70,8 @@ phina.namespace(function() {
         top0: _.action([
           _.fire(_.direction(0), _.speed(7), _.bullet({ type: 2 })),
           _.repeat(Infinity, [
-            _.wait(6),
-            _.fire(_.direction(8, "sequence"), _.speed(7), _.bullet({ type: 2 })),
+            _.wait(3),
+            _.fire(_.direction(11, "sequence"), _.speed(7), _.bullet({ type: 2 })),
             _.repeat(w - 1, [
               _.fire(_.direction(360 / w, "sequence"), _.speed(7), _.bullet({ type: 2 })),
             ]),
@@ -80,8 +80,8 @@ phina.namespace(function() {
         top1: _.action([
           _.fire(_.direction(0), _.speed(7), _.bullet({ type: 8 })),
           _.repeat(Infinity, [
-            _.wait(6),
-            _.fire(_.direction(12, "sequence"), _.speed(7), _.bullet({ type: 8 })),
+            _.wait(3),
+            _.fire(_.direction(29, "sequence"), _.speed(7), _.bullet({ type: 8 })),
             _.repeat(w - 1, [
               _.fire(_.direction(360 / w, "sequence"), _.speed(7), _.bullet({ type: 8 })),
             ]),
@@ -89,8 +89,10 @@ phina.namespace(function() {
         ]),
         top2: _.action([
           _.repeat(Infinity, [
-            _.wait(100),
-            _.fire(_.direction(-17, "sequence"), _.speed(3), _.bullet({ type: 32 })),
+            _.wait(33),
+            _.repeat(90, [
+              _.fire(_.direction(360 / 90, "sequence"), _.speed(3), _.bullet({ type: 32 })),
+            ])
           ]),
         ]),
       });
@@ -110,7 +112,7 @@ phina.namespace(function() {
       var self = this;
       var glLayer = this.glLayer;
       var f = app.ticker.frame;
-      if (f % 2 === 0) {
+      if (f % 80 === 0) {
         var x = Math.randfloat(0, 640);
         var y = Math.randfloat(0, 960);
         (100).times(function() {

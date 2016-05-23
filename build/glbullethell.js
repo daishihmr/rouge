@@ -78,13 +78,14 @@ phina.namespace(function() {
     
     instanceData: null,
     pool: null,
-    _count: 50000,
+    _count: 1000,
 
     init: function(gl, ext, w, h) {
       this.superInit(gl, ext);
       this
         .setProgram(phigl.Program(gl).attach("bulletSprites.vs").attach("bulletSprites.fs").link())
-        .setIndexValues([0, 1, 2, 1, 3, 2])
+        .setDrawMode(gl.TRIANGLE_STRIP)
+        .setIndexValues([0, 1, 2, 3])
         .setAttributes("position", "uv")
         .setAttributeDataArray([{
           unitSize: 2,
@@ -264,7 +265,7 @@ phina.namespace(function() {
     
     instanceData: null,
     pool: null,
-    _count: 50000,
+    _count: 1000,
 
     init: function(gl, ext, w, h) {
       this.superInit(gl, ext);
