@@ -11,6 +11,7 @@ uniform mat4 vpMatrix;
 uniform vec3 lightDirection;
 uniform vec4 diffuseColor;
 uniform vec4 ambientColor;
+uniform vec3 eyeDirection;
 
 varying vec2 vUv;
 varying vec4 vColor;
@@ -112,18 +113,22 @@ void main(void) {
         vec4(0.0, 0.0, 1.0, 0.0),
         vec4(instancePosition, 1.0)
       ) *
-      rotX(instanceRotation.x) *
-      rotY(instanceRotation.y) *
       rotZ(instanceRotation.z) *
+      rotY(instanceRotation.y) *
+      rotX(instanceRotation.x) *
       scale(instanceScale)
       ;
     
     mat4 mvpMatrix = vpMatrix * mMatrix;
     mat4 invMatrix = inverse(mMatrix);
     
-    vec3 invLight = normalize(invMatrix * vec4(lightDirection, 0.0)).xyz;
-    float diffuse = clamp(dot(normal, invLight), 0.0, 1.0);
-    vColor = diffuseColor * vec4(vec3(diffuse), 1.0) + ambientColor;
-    gl_Position = mvpMatrix * vec4(position, 1.0);
+    vec3  invLight = normalize(invMatrix * vec4(-lightDirection, 0.0)).xyz;
+    vec3  invEye   = normalize(invMatrix * vec4(-eyeDirection, 0.0)).xyz;
+    vec3  halfLE   = normalize(invLight + invEye);
+    float diffuse  = clamp(dot(normal, invLight), 0.0, 1.0);
+    float specular = pow(clamp(dot(normal, halfLE), 0.0, 1.0), 20.0);
+    vec4  light    = diffuseColor * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 1.0);
+    vColor         = light + ambientColor;
+    gl_Position    = mvpMatrix * vec4(position, 1.0);
   }
 }

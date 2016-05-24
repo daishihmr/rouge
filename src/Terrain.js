@@ -5,18 +5,18 @@ phina.namespace(function() {
 
     instanceData: null,
     pool: null,
-    _count: 200,
+    _count: 0,
 
     init: function(gl, ext, w, h) {
       this.superInit(gl, ext);
 
-      var obj = phina.asset.AssetManager.get("obj", "test.obj");
+      var obj = phina.asset.AssetManager.get("obj", "hex.obj");
 
       this
         .setProgram(phigl.Program(gl).attach("terrain.vs").attach("terrain.fs").link())
-        .setIndexValues(obj.getIndices("Cylinder"))
+        .setIndexValues(obj.getIndices())
         .setAttributes("position", "uv", "normal")
-        .setAttributeData(obj.getAttributeData("Cylinder"))
+        .setAttributeData(obj.getAttributeData())
         .setInstanceAttributes(
           "instanceVisible",
           "instancePosition",
@@ -27,10 +27,13 @@ phina.namespace(function() {
           "vpMatrix",
           "lightDirection",
           "diffuseColor",
-          "ambientColor"
+          "ambientColor",
+          "eyeDirection"
         );
 
       var instanceStride = this.instanceStride / 4;
+
+      this._count = (glb.Terrain.countX * 2) * (glb.Terrain.countZ * 2);
 
       var instanceData = this.instanceData = [];
       for (var i = 0; i < this._count; i++) {
@@ -47,13 +50,15 @@ phina.namespace(function() {
       }
       this.setInstanceAttributeData(instanceData);
 
-      this.uniforms.lightDirection.value = [1, 1, 1];
-      this.uniforms.diffuseColor.value = [0.22 * 2, 0.22, 0.22, 1.0];
-      this.uniforms.ambientColor.value = [0.02, 0.02, 0.02, 1.0];
+      this.lightDirection = vec3.set(vec3.create(), 1, -1, -1);
+      this.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
+      this.uniforms.diffuseColor.value = [0.22, 0.22, 0.22 * 2, 1.0];
+      this.uniforms.ambientColor.value = [0.10, 0.10, 0.10, 1.0];
 
-      var vMatrix = mat4.lookAt(mat4.create(), [0, 20, 5], [0, 0, 0], [0, 1, 0]);
+      var vMatrix = mat4.lookAt(mat4.create(), [2, 30, 5], [0, 0, 0], [0, 1, 0]);
       var pMatrix = mat4.perspective(mat4.create(), 45, w / h, 0.1, 10000);
       this.uniforms.vpMatrix.value = mat4.mul(mat4.create(), pMatrix, vMatrix);
+      this.uniforms.eyeDirection.value = [0, -30, -5];
 
       var self = this;
       this.pool = Array.range(0, this._count).map(function(id) {
@@ -67,7 +72,10 @@ phina.namespace(function() {
       // console.log(this);
     },
 
-    update: function() {
+    update: function(app) {
+      var f = app.ticker.frame * 0.01;
+      this.lightDirection = vec3.set(vec3.create(), Math.cos(f), -0.3, Math.sin(f));
+      this.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
       this.setInstanceAttributeData(this.instanceData);
     },
 
@@ -78,6 +86,12 @@ phina.namespace(function() {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
       this.draw(this._count);
+    },
+
+    _static: {
+      countX: 10,
+      countZ: 14,
+      unit: 2.0,
     },
   });
 

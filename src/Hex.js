@@ -58,8 +58,16 @@ phina.namespace(function() {
       var instanceData = this.instanceData;
       var instanceStride = this.instanceStride;
 
-      this.z += 0.1;
-      if (10 * 1.8 * 1 / Math.sqrt(3) * 1.5 < this.z) this.z -= 10 * 1.8 * 1 / Math.sqrt(3) * 1.5 * 2;
+      this.x += 0.10;
+      this.z += 0.25;
+
+      var countX = glb.Terrain.countX;
+      var countZ = glb.Terrain.countZ;
+      var unit = glb.Terrain.unit;
+      if (this.x < -countX * unit) this.x += countX * unit * 2;
+      else if (countX * unit < this.x) this.x -= countX * unit * 2;
+      if (this.z < -countZ * unit * 1 / Math.sqrt(3) * 1.5) this.z += countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
+      else if (countZ * unit * 1 / Math.sqrt(3) * 1.5 < this.z) this.z -= countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
 
       instanceData[id * instanceStride + 1] = this.x;
       instanceData[id * instanceStride + 2] = this.y;

@@ -16,7 +16,7 @@ phina.namespace(function() {
             arguments: {
               assets: {
                 obj: {
-                  "test.obj": "../asset/test.obj",
+                  "hex.obj": "../asset/hex.obj",
                 },
                 image: {
                   "bullets.png": "../asset/bullets.png",
@@ -78,33 +78,33 @@ phina.namespace(function() {
         ]);
       };
       var pattern = new bulletml.Root({
-        top0: _.action([
-          _.repeat(Infinity, [
-            _.fire(_.bullet(_.direction(2, "sequance"), _.action([_.wait(1), _.vanish()]))),
-            _.wait(3),
-            _.repeat(4, [
-              _.fire(_.direction(90, "sequance"), _.bullet(speed(7), { type: 5 })),
-            ]),
-          ]),
-        ]),
-        top1: _.action([
-          _.repeat(Infinity, [
-            _.fire(_.bullet(_.direction(-4, "sequance"), _.action([_.wait(1), _.vanish()]))),
-            _.wait(3),
-            _.repeat(4, [
-              _.fire(_.direction(90, "sequance"), _.bullet(speed(7), { type: 13 })),
-            ]),
-          ]),
-        ]),
-        top2: _.action([
-          _.repeat(Infinity, [
-            _.fire(_.bullet(_.direction(5, "sequance"), _.action([_.wait(1), _.vanish()]))),
-            _.wait(2),
-            _.repeat(4, [
-              _.fire(_.direction(90, "sequance"), _.bullet(speed(10), { type: 21 })),
-            ]),
-          ]),
-        ]),
+        // top0: _.action([
+        //   _.repeat(Infinity, [
+        //     _.fire(_.bullet(_.direction(2, "sequance"), _.action([_.wait(1), _.vanish()]))),
+        //     _.wait(3),
+        //     _.repeat(4, [
+        //       _.fire(_.direction(90, "sequance"), _.bullet(speed(7), { type: 5 })),
+        //     ]),
+        //   ]),
+        // ]),
+        // top1: _.action([
+        //   _.repeat(Infinity, [
+        //     _.fire(_.bullet(_.direction(-4, "sequance"), _.action([_.wait(1), _.vanish()]))),
+        //     _.wait(3),
+        //     _.repeat(4, [
+        //       _.fire(_.direction(90, "sequance"), _.bullet(speed(7), { type: 13 })),
+        //     ]),
+        //   ]),
+        // ]),
+        // top2: _.action([
+        //   _.repeat(Infinity, [
+        //     _.fire(_.bullet(_.direction(5, "sequance"), _.action([_.wait(1), _.vanish()]))),
+        //     _.wait(2),
+        //     _.repeat(4, [
+        //       _.fire(_.direction(90, "sequance"), _.bullet(speed(10), { type: 21 })),
+        //     ]),
+        //   ]),
+        // ]),
       });
 
       var runner = pattern.createRunner(config);
@@ -119,6 +119,7 @@ phina.namespace(function() {
     },
 
     update: function(app) {
+      return;
       var self = this;
       var glLayer = this.glLayer;
       var f = app.ticker.frame;

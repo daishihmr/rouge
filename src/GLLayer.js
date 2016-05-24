@@ -33,22 +33,24 @@ phina.namespace(function() {
       this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, this.width, this.height);
 
       var self = this;
-      var unit = 1.8;
-      Array.range(-5, 5).forEach(function(x) {
-        Array.range(-10, 10).forEach(function(z) {
+      var countX = glb.Terrain.countX;
+      var countZ = glb.Terrain.countZ;
+      var unit = glb.Terrain.unit;
+      Array.range(-countX, countX).forEach(function(x) {
+        Array.range(-countZ, countZ).forEach(function(z) {
           var hex = self.getHex();
           if (hex) {
             hex
               .spawn({
                 x: x * unit + z % 2,
-                y: Math.randfloat(-1.2, 1.2),
+                y: Math.random() < 0.1 ? 4 : 0,
                 z: z * unit * 1 / Math.sqrt(3) * 1.5,
                 rotX: 0,
                 rotY: 0,
                 rotZ: 0,
-                scaleX: 1,
-                scaleY: 1,
-                scaleZ: 1,
+                scaleX: 1.1,
+                scaleY: 1.1,
+                scaleZ: 1.1,
               })
               .addChildTo(self);
           }
