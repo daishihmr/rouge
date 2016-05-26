@@ -52,7 +52,7 @@ phina.namespace(function() {
 
       this.lightDirection = vec3.set(vec3.create(), 1, -1, -1);
       this.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
-      this.uniforms.diffuseColor.value = [0.22, 0.22, 0.22 * 2, 1.0];
+      this.uniforms.diffuseColor.value = [0.22, 0.22 * 2, 0.22, 1.0];
       this.uniforms.ambientColor.value = [0.10, 0.10, 0.10, 1.0];
 
       var vMatrix = mat4.lookAt(mat4.create(), [2, 30, 5], [0, 0, 0], [0, 1, 0]);
@@ -64,8 +64,8 @@ phina.namespace(function() {
       this.pool = Array.range(0, this._count).map(function(id) {
         return glb.Hex(id, instanceData, instanceStride)
           .on("removed", function() {
+            instanceData[this.index + 0] = 0;
             self.pool.push(this);
-            instanceData[this.id * instanceStride + 0] = 0;
           });
       });
 
@@ -77,6 +77,10 @@ phina.namespace(function() {
       this.lightDirection = vec3.set(vec3.create(), Math.cos(f), -0.3, Math.sin(f));
       this.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
       this.setInstanceAttributeData(this.instanceData);
+    },
+
+    get: function() {
+      return this.pool.shift();
     },
 
     render: function() {

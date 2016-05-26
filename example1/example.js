@@ -1,3 +1,6 @@
+var SCREEN_WIDTH = 720;
+var SCREEN_HEIGHT = 1080;
+
 phina.namespace(function() {
 
   phina.main(function() {
@@ -5,8 +8,10 @@ phina.namespace(function() {
     phina.accessory.Tweener.prototype.updateType = "fps";
 
     phina.display.CanvasApp({
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
         backgroundColor: "black",
-        fps: 60,
+        fps: 30,
       })
       .replaceScene(
         phina.game.ManagerScene({
@@ -48,7 +53,10 @@ phina.namespace(function() {
     superClass: "phina.display.DisplayScene",
 
     init: function() {
-      this.superInit();
+      this.superInit({
+        width: 720,
+        height: 1280,
+      });
       this.fromJSON({
         children: {
           enemyLayer: { className: "phina.display.DisplayElement" },
@@ -59,7 +67,7 @@ phina.namespace(function() {
       var glLayer = this.glLayer;
 
       var config = {
-        target: { x: 320, y: 960 },
+        target: { x: this.width / 2, y: this.height * 0.9 },
         createNewBullet: function(runner, option) {
           var b = glLayer.getBullet();
           if (b) b.spawn(runner, option).addChildTo(glLayer);
@@ -67,49 +75,58 @@ phina.namespace(function() {
       };
 
       var _ = bulletml.dsl;
-      var w = 80;
+      var w = 8;
       var speed = function(s) {
         return _.action([
-          _.changeSpeed(_.speed(10), 1),
+          _.changeSpeed(_.speed(8), 1),
           _.wait(1),
-          _.changeSpeed(_.speed(0), 8),
-          _.wait(20),
-          _.changeSpeed(_.speed(s), 80),
+          _.changeSpeed(_.speed(0), 10),
+          _.wait(30),
+          _.changeSpeed(_.speed(s), 25),
         ]);
       };
       var pattern = new bulletml.Root({
-        // top0: _.action([
-        //   _.repeat(Infinity, [
-        //     _.fire(_.bullet(_.direction(2, "sequance"), _.action([_.wait(1), _.vanish()]))),
-        //     _.wait(3),
-        //     _.repeat(4, [
-        //       _.fire(_.direction(90, "sequance"), _.bullet(speed(7), { type: 5 })),
-        //     ]),
-        //   ]),
-        // ]),
-        // top1: _.action([
-        //   _.repeat(Infinity, [
-        //     _.fire(_.bullet(_.direction(-4, "sequance"), _.action([_.wait(1), _.vanish()]))),
-        //     _.wait(3),
-        //     _.repeat(4, [
-        //       _.fire(_.direction(90, "sequance"), _.bullet(speed(7), { type: 13 })),
-        //     ]),
-        //   ]),
-        // ]),
-        // top2: _.action([
-        //   _.repeat(Infinity, [
-        //     _.fire(_.bullet(_.direction(5, "sequance"), _.action([_.wait(1), _.vanish()]))),
-        //     _.wait(2),
-        //     _.repeat(4, [
-        //       _.fire(_.direction(90, "sequance"), _.bullet(speed(10), { type: 21 })),
-        //     ]),
-        //   ]),
-        // ]),
+        top0: _.action([
+          _.repeat(Infinity, [
+            _.fire(_.bullet(_.direction(2, "sequance"), _.action([_.wait(1), _.vanish()]))),
+            _.wait(2),
+            _.repeat(w, [
+              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(20), { type: 1 })),
+            ]),
+          ]),
+        ]),
+        top1: _.action([
+          _.repeat(Infinity, [
+            _.fire(_.bullet(_.direction(-4, "sequance"), _.action([_.wait(1), _.vanish()]))),
+            _.wait(2),
+            _.repeat(w, [
+              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(10), { type: 9 })),
+            ]),
+          ]),
+        ]),
+        top2: _.action([
+          _.repeat(Infinity, [
+            _.fire(_.bullet(_.direction(5, "sequance"), _.action([_.wait(1), _.vanish()]))),
+            _.wait(6),
+            _.repeat(w, [
+              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 33 })),
+            ]),
+          ]),
+        ]),
+        top3: _.action([
+          _.repeat(Infinity, [
+            _.fire(_.bullet(_.direction(-5, "sequance"), _.action([_.wait(1), _.vanish()]))),
+            _.wait(6),
+            _.repeat(w, [
+              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 41 })),
+            ]),
+          ]),
+        ]),
       });
 
       var runner = pattern.createRunner(config);
       phina.display.CircleShape()
-        .setPosition(320, 300)
+        .setPosition(this.width / 2, this.height * 0.2)
         .on("enterframe", function() {
           runner.x = this.x;
           runner.y = this.y;
@@ -119,14 +136,14 @@ phina.namespace(function() {
     },
 
     update: function(app) {
-      return;
+      // return;
       var self = this;
       var glLayer = this.glLayer;
       var f = app.ticker.frame;
-      if (f % 40 === 0) {
-        var x = Math.randfloat(0, 640);
-        var y = Math.randfloat(0, 960);
-        (30).times(function() {
+      if (f % 2 === 0) {
+        var x = Math.randfloat(0, this.width);
+        var y = Math.randfloat(0, this.height);
+        (15).times(function() {
           var a = Math.randfloat(0, Math.PI * 2);
           var r = Math.randfloat(10, 50);
           var e = glLayer.getEffect();
@@ -147,13 +164,13 @@ phina.namespace(function() {
               y: y + Math.sin(a) * r,
               scale: 1.5,
               alpha: 0,
-            }, 30)
+            }, 15)
             .call(function() {
               e.remove();
             });
         });
 
-        (10).times(function() {
+        (5).times(function() {
           var a = Math.randfloat(0, Math.PI * 2);
           var r = Math.randfloat(80, 150);
           var e = glLayer.getEffect();
@@ -173,7 +190,7 @@ phina.namespace(function() {
               x: x + Math.cos(a) * r,
               y: y + Math.sin(a) * r,
               alpha: 0,
-            }, 40, "easeOutQuad")
+            }, 20, "easeOutQuad")
             .call(function() {
               e.remove();
             });

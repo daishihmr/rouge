@@ -2,16 +2,17 @@ phina.namespace(function() {
 
   phina.define("glb.EffectSprites", {
     superClass: "phigl.InstancedDrawable",
-    
+
     instanceData: null,
     pool: null,
-    _count: 1000,
+    _count: 200,
 
     init: function(gl, ext, w, h) {
       this.superInit(gl, ext);
       this
         .setProgram(phigl.Program(gl).attach("effectSprites.vs").attach("effectSprites.fs").link())
-        .setIndexValues([0, 1, 2, 1, 3, 2])
+        .setDrawMode(gl.TRIANGLE_STRIP)
+        .setIndexValues([0, 1, 2, 3])
         .setAttributes("position", "uv")
         .setAttributeDataArray([{
           unitSize: 2,
@@ -52,9 +53,9 @@ phina.namespace(function() {
           "texture",
           "globalScale"
         );
-      
+
       var instanceStride = this.instanceStride / 4;
-        
+
       this.uniforms.vMatrix.setValue(
         mat4.lookAt(mat4.create(), [w / 2, h / 2, 1000], [w / 2, h / 2, 0], [0, 1, 0])
       );
@@ -87,14 +88,14 @@ phina.namespace(function() {
       this.pool = Array.range(0, this._count).map(function(id) {
         return glb.Effect(id, instanceData, instanceStride)
           .on("removed", function() {
+            instanceData[this.index + 0] = 0;
             self.pool.push(this);
-            instanceData[this.id * instanceStride + 0] = 0;
           });
       });
-      
+
       // console.log(this);
     },
-    
+
     _createTexture: function() {
       var texture = phina.graphics.Canvas().setSize(512, 512);
       var context = texture.context;
@@ -106,17 +107,21 @@ phina.namespace(function() {
       context.fillRect(0, 0, 64, 64);
       return texture;
     },
-    
+
+    get: function() {
+      return this.pool.shift();
+    },
+
     update: function() {
       this.setInstanceAttributeData(this.instanceData);
     },
-    
+
     render: function() {
       var gl = this.gl;
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
       gl.disable(gl.DEPTH_TEST);
-      
+
       this.uniforms.globalScale.value = 1.0;
       // console.log("effect draw");
       this.draw(this._count);

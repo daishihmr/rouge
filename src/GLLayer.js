@@ -11,15 +11,17 @@ phina.namespace(function() {
     effectSprites: null,
     bulletSprites: null,
 
-    init: function(options) {
-      options = options || {};
-      this.superInit(options);
+    init: function() {
+      this.superInit({
+        width: 720,
+        height: 1280,
+      });
       this.originX = 0;
       this.originY = 0;
 
       this.domElement = document.createElement("canvas");
-      this.domElement.width = this.width;
-      this.domElement.height = this.height;
+      this.domElement.width = this.width / 2;
+      this.domElement.height = this.height / 2;
 
       this.gl = this.domElement.getContext("webgl");
       var extInstancedArrays = phigl.Extensions.getInstancedArrays(this.gl);
@@ -59,15 +61,15 @@ phina.namespace(function() {
     },
 
     getHex: function() {
-      return this.terrain.pool.shift();
+      return this.terrain.get();
     },
 
     getEffect: function() {
-      return this.effectSprites.pool.shift();
+      return this.effectSprites.get();
     },
 
     getBullet: function() {
-      return this.bulletSprites.pool.shift();
+      return this.bulletSprites.get();
     },
 
     update: function(app) {

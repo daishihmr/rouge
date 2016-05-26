@@ -17,13 +17,12 @@ phina.namespace(function() {
       this.superInit();
       this.id = id;
       this.instanceData = instanceData;
-      this.instanceStride = instanceStride;
+      this.index = id * instanceStride;
     },
 
     spawn: function(options) {
-      var id = this.id;
+      var index = this.index;
       var instanceData = this.instanceData;
-      var instanceStride = this.instanceStride;
 
       this.x = options.x;
       this.y = options.y;
@@ -31,14 +30,14 @@ phina.namespace(function() {
       this.scale = options.scale;
       this.alpha = options.alpha;
 
-      instanceData[id * instanceStride + 0] = 1; // visible
-      instanceData[id * instanceStride + 1] = this.x; // position.x
-      instanceData[id * instanceStride + 2] = this.y; // position.y
-      instanceData[id * instanceStride + 3] = this.rotation; // rotation
-      instanceData[id * instanceStride + 4] = this.scale; // scale
-      instanceData[id * instanceStride + 5] = 0; // frame.x
-      instanceData[id * instanceStride + 6] = 0; // frame.y
-      instanceData[id * instanceStride + 7] = this.alpha; // alpha
+      instanceData[index + 0] = 1; // visible
+      instanceData[index + 1] = this.x; // position.x
+      instanceData[index + 2] = this.y; // position.y
+      instanceData[index + 3] = this.rotation; // rotation
+      instanceData[index + 4] = this.scale; // scale
+      instanceData[index + 5] = 0; // frame.x
+      instanceData[index + 6] = 0; // frame.y
+      instanceData[index + 7] = this.alpha; // alpha
 
       this.age = 0;
 
@@ -46,19 +45,18 @@ phina.namespace(function() {
     },
 
     update: function(app) {
-      var id = this.id;
+      var index = this.index;
       var instanceData = this.instanceData;
-      var instanceStride = this.instanceStride;
 
       if (this.x < -100 || 640 + 100 < this.x || this.y < -100 || 960 + 100 < this.y) {
         this.remove();
       }
 
-      instanceData[id * instanceStride + 1] = this.x;
-      instanceData[id * instanceStride + 2] = this.y;
-      instanceData[id * instanceStride + 3] = this.rotation;
-      instanceData[id * instanceStride + 4] = this.scale;
-      instanceData[id * instanceStride + 7] = this.alpha;
+      instanceData[index + 1] = this.x;
+      instanceData[index + 2] = this.y;
+      instanceData[index + 3] = this.rotation;
+      instanceData[index + 4] = this.scale;
+      instanceData[index + 7] = this.alpha;
 
       this.age += 1;
     },

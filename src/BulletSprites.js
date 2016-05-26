@@ -1,8 +1,7 @@
 phina.namespace(function() {
-
   phina.define("glb.BulletSprites", {
     superClass: "phigl.InstancedDrawable",
-    
+
     instanceData: null,
     pool: null,
     _count: 1000,
@@ -54,9 +53,9 @@ phina.namespace(function() {
           "texture",
           "globalScale"
         );
-      
-      var instanceStride = this.instanceStride / 4;
-        
+
+      var instanceUnit = this.instanceStride / 4;
+
       this.uniforms.vMatrix.setValue(
         mat4.lookAt(mat4.create(), [w / 2, h / 2, 1000], [w / 2, h / 2, 0], [0, 1, 0])
       );
@@ -89,26 +88,35 @@ phina.namespace(function() {
 
       var self = this;
       this.pool = Array.range(0, this._count).map(function(id) {
-        return glb.Bullet(id, instanceData, instanceStride)
+        return glb.Bullet(id, instanceData, instanceUnit)
           .on("removed", function() {
             self.pool.push(this);
-            instanceData[this.id * instanceStride + 6] = 0;
           });
       });
-      
+
       // console.log(this);
+
+      // console.log("count = " + this._count);
+      // console.log("this.instanceStride = " + this.instanceStride);
+      // console.log("instanceUnit = " + instanceUnit);
+      // console.log("this.instanceData.length = " + this.instanceData.length);
     },
-    
-    update: function() {
+
+    get: function() {
+      var b = this.pool.shift();
+      return b;
+    },
+
+    update: function(app) {
       this.setInstanceAttributeData(this.instanceData);
     },
-    
+
     render: function() {
       var gl = this.gl;
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.disable(gl.DEPTH_TEST);
-      
+
       this.uniforms.globalScale.value = 1.0;
       // console.log("bullet draw");
       this.draw(this._count);

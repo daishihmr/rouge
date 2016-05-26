@@ -20,13 +20,12 @@ phina.namespace(function() {
       this.superInit();
       this.id = id;
       this.instanceData = instanceData;
-      this.instanceStride = instanceStride;
+      this.index = id * instanceStride;
     },
 
     spawn: function(options) {
-      var id = this.id;
+      var index = this.index;
       var instanceData = this.instanceData;
-      var instanceStride = this.instanceStride;
       this.age = 0;
 
       this.x = options.x;
@@ -39,27 +38,26 @@ phina.namespace(function() {
       this.scaleY = options.scaleY;
       this.scaleZ = options.scaleZ;
 
-      instanceData[id * instanceStride + 0] = 1;
-      instanceData[id * instanceStride + 1] = this.x;
-      instanceData[id * instanceStride + 2] = this.y;
-      instanceData[id * instanceStride + 3] = this.z;
-      instanceData[id * instanceStride + 4] = this.rotX;
-      instanceData[id * instanceStride + 5] = this.rotY;
-      instanceData[id * instanceStride + 6] = this.rotZ;
-      instanceData[id * instanceStride + 7] = this.scaleX;
-      instanceData[id * instanceStride + 8] = this.scaleY;
-      instanceData[id * instanceStride + 9] = this.scaleZ;
+      instanceData[index + 0] = 1;
+      instanceData[index + 1] = this.x;
+      instanceData[index + 2] = this.y;
+      instanceData[index + 3] = this.z;
+      instanceData[index + 4] = this.rotX;
+      instanceData[index + 5] = this.rotY;
+      instanceData[index + 6] = this.rotZ;
+      instanceData[index + 7] = this.scaleX;
+      instanceData[index + 8] = this.scaleY;
+      instanceData[index + 9] = this.scaleZ;
 
       return this;
     },
 
     update: function(app) {
-      var id = this.id;
+      var index = this.index;
       var instanceData = this.instanceData;
-      var instanceStride = this.instanceStride;
 
-      this.x += 0.10;
-      this.z += 0.25;
+      this.x += 0.20;
+      this.z += 0.50;
 
       var countX = glb.Terrain.countX;
       var countZ = glb.Terrain.countZ;
@@ -69,15 +67,15 @@ phina.namespace(function() {
       if (this.z < -countZ * unit * 1 / Math.sqrt(3) * 1.5) this.z += countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
       else if (countZ * unit * 1 / Math.sqrt(3) * 1.5 < this.z) this.z -= countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
 
-      instanceData[id * instanceStride + 1] = this.x;
-      instanceData[id * instanceStride + 2] = this.y;
-      instanceData[id * instanceStride + 3] = this.z;
-      instanceData[id * instanceStride + 4] = this.rotX;
-      instanceData[id * instanceStride + 5] = this.rotY;
-      instanceData[id * instanceStride + 6] = this.rotZ;
-      instanceData[id * instanceStride + 7] = this.scaleX;
-      instanceData[id * instanceStride + 8] = this.scaleY;
-      instanceData[id * instanceStride + 9] = this.scaleZ;
+      instanceData[index + 1] = this.x;
+      instanceData[index + 2] = this.y;
+      instanceData[index + 3] = this.z;
+      instanceData[index + 4] = this.rotX;
+      instanceData[index + 5] = this.rotY;
+      instanceData[index + 6] = this.rotZ;
+      instanceData[index + 7] = this.scaleX;
+      instanceData[index + 8] = this.scaleY;
+      instanceData[index + 9] = this.scaleZ;
 
       this.age += 1;
     },
