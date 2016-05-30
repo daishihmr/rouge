@@ -1,6 +1,6 @@
 phina.namespace(function() {
 
-  phina.define("glb.Hex", {
+  phina.define("glb.Obj", {
     superClass: "phina.app.Element",
 
     id: -1,
@@ -55,17 +55,6 @@ phina.namespace(function() {
     update: function(app) {
       var index = this.index;
       var instanceData = this.instanceData;
-
-      this.x += 0.20;
-      this.z += 0.50;
-
-      var countX = glb.Terrain.countX;
-      var countZ = glb.Terrain.countZ;
-      var unit = glb.Terrain.unit;
-      if (this.x < -countX * unit) this.x += countX * unit * 2;
-      else if (countX * unit < this.x) this.x -= countX * unit * 2;
-      if (this.z < -countZ * unit * 1 / Math.sqrt(3) * 1.5) this.z += countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
-      else if (countZ * unit * 1 / Math.sqrt(3) * 1.5 < this.z) this.z -= countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
 
       instanceData[index + 1] = this.x;
       instanceData[index + 2] = this.y;

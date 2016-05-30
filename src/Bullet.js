@@ -46,6 +46,10 @@ phina.namespace(function() {
 
       return this;
     },
+    
+    onremoved: function() {
+      this.instanceData[this.index + 6] = 0;
+    },
 
     update: function(app) {
       var instanceData = this.instanceData;
@@ -58,7 +62,6 @@ phina.namespace(function() {
 
       if (this.x < -100 || SCREEN_WIDTH + 100 < this.x || this.y < -100 || SCREEN_HEIGHT + 100 < this.y) {
         this.remove();
-        instanceData[index + 6] = 0;
         return;
       }
 

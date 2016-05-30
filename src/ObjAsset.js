@@ -52,6 +52,38 @@ phina.namespace(function() {
         ];
       }).flatten();
     },
+
+    getAttributeDataEdges: function(objectName, groupName) {
+      objectName = objectName || "defaultObject";
+      groupName = groupName || "defaultGroup";
+
+      var obj = globj.ObjParser.parse(this.data)[objectName].groups[groupName];
+      var hashes = [];
+      var result = [];
+
+      return obj.faces
+        .map(function(face) {
+          var lines = [];
+          for (var i = 0; i < face.length - 1; i++) {
+            lines.push([face[i + 0].position, face[i + 1].position]);
+          }
+          lines.push([face.last.position, face.first.position]);
+          return lines;
+        })
+        .flatten(1)
+        .uniq(function(lhs, rhs) {
+          return lhs[0] === rhs[0] && lhs[1] === rhs[1];
+        })
+        .map(function(edge) {
+          var p0 = obj.positions[edge[0] - 1];
+          var p1 = obj.positions[edge[1] - 1];
+          return [
+            [p0.x, p0.y, p0.z],
+            [p1.x, p1.y, p1.z],
+          ];
+        })
+        .flatten();
+    },
   });
 
   phina.asset.AssetLoader.assetLoadFunctions["obj"] = function(key, path) {
@@ -59,6 +91,14 @@ phina.namespace(function() {
     return shader.load({
       path: path,
     });
+  };
+
+  var hash = function(p0, p1) {
+    var result = 1;
+    var prime = 2411;
+    result = prime * result + p0;
+    result = prime * result + p1;
+    return "" + result;
   };
 
 });

@@ -57,7 +57,7 @@ phina.namespace(function() {
       var instanceUnit = this.instanceStride / 4;
 
       this.uniforms.vMatrix.setValue(
-        mat4.lookAt(mat4.create(), [w / 2, h / 2, 1000], [w / 2, h / 2, 0], [0, 1, 0])
+        mat4.lookAt(mat4.create(), [w / 2, h * 0.75, w * 1.5], [w / 2, h / 2, 0], [0, 1, 0])
       );
       this.uniforms.pMatrix.setValue(
         mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000)

@@ -1,5 +1,6 @@
 var SCREEN_WIDTH = 720;
 var SCREEN_HEIGHT = 1080;
+var OBJ_SCALE = 20.0;
 
 phina.namespace(function() {
 
@@ -22,6 +23,8 @@ phina.namespace(function() {
               assets: {
                 obj: {
                   "hex.obj": "../asset/hex.obj",
+                  "cube.obj": "../asset/cube.obj",
+                  "enemyS1.obj": "../asset/enemyS1.obj",
                 },
                 image: {
                   "bullets.png": "../asset/bullets.png",
@@ -30,11 +33,17 @@ phina.namespace(function() {
                   "bulletSprites.vs": "../asset/bulletSprites.vs",
                   "effectSprites.vs": "../asset/effectSprites.vs",
                   "terrain.vs": "../asset/terrain.vs",
+                  "terrainEdge.vs": "../asset/terrainEdge.vs",
+                  "obj.vs": "../asset/obj.vs",
+                  "objEdge.vs": "../asset/objEdge.vs",
                 },
                 fragmentShader: {
                   "bulletSprites.fs": "../asset/bulletSprites.fs",
                   "effectSprites.fs": "../asset/effectSprites.fs",
                   "terrain.fs": "../asset/terrain.fs",
+                  "terrainEdge.fs": "../asset/terrainEdge.fs",
+                  "obj.fs": "../asset/obj.fs",
+                  "objEdge.fs": "../asset/objEdge.fs",
                 },
               },
             },
@@ -53,6 +62,7 @@ phina.namespace(function() {
     superClass: "phina.display.DisplayScene",
 
     init: function() {
+      var self = this;
       this.superInit({
         width: 720,
         height: 1280,
@@ -86,53 +96,69 @@ phina.namespace(function() {
         ]);
       };
       var pattern = new bulletml.Root({
-        top0: _.action([
-          _.repeat(Infinity, [
-            _.fire(_.bullet(_.direction(2, "sequance"), _.action([_.wait(1), _.vanish()]))),
-            _.wait(2),
-            _.repeat(w, [
-              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(20), { type: 1 })),
-            ]),
-          ]),
-        ]),
-        top1: _.action([
-          _.repeat(Infinity, [
-            _.fire(_.bullet(_.direction(-4, "sequance"), _.action([_.wait(1), _.vanish()]))),
-            _.wait(2),
-            _.repeat(w, [
-              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(10), { type: 9 })),
-            ]),
-          ]),
-        ]),
-        top2: _.action([
-          _.repeat(Infinity, [
-            _.fire(_.bullet(_.direction(5, "sequance"), _.action([_.wait(1), _.vanish()]))),
-            _.wait(6),
-            _.repeat(w, [
-              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 33 })),
-            ]),
-          ]),
-        ]),
-        top3: _.action([
-          _.repeat(Infinity, [
-            _.fire(_.bullet(_.direction(-5, "sequance"), _.action([_.wait(1), _.vanish()]))),
-            _.wait(6),
-            _.repeat(w, [
-              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 41 })),
-            ]),
-          ]),
-        ]),
+        // top0: _.action([
+        //   _.repeat(Infinity, [
+        //     _.fire(_.bullet(_.direction(2, "sequance"), _.action([_.wait(1), _.vanish()]))),
+        //     _.wait(2),
+        //     _.repeat(w, [
+        //       _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(20), { type: 1 })),
+        //     ]),
+        //   ]),
+        // ]),
+        // top1: _.action([
+        //   _.repeat(Infinity, [
+        //     _.fire(_.bullet(_.direction(-4, "sequance"), _.action([_.wait(1), _.vanish()]))),
+        //     _.wait(2),
+        //     _.repeat(w, [
+        //       _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(10), { type: 9 })),
+        //     ]),
+        //   ]),
+        // ]),
+        // top2: _.action([
+        //   _.repeat(Infinity, [
+        //     _.fire(_.bullet(_.direction(5, "sequance"), _.action([_.wait(1), _.vanish()]))),
+        //     _.wait(6),
+        //     _.repeat(w, [
+        //       _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 33 })),
+        //     ]),
+        //   ]),
+        // ]),
+        // top3: _.action([
+        //   _.repeat(Infinity, [
+        //     _.fire(_.bullet(_.direction(-5, "sequance"), _.action([_.wait(1), _.vanish()]))),
+        //     _.wait(6),
+        //     _.repeat(w, [
+        //       _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 41 })),
+        //     ]),
+        //   ]),
+        // ]),
       });
 
       var runner = pattern.createRunner(config);
-      phina.display.CircleShape()
-        .setPosition(this.width / 2, this.height * 0.2)
-        .on("enterframe", function() {
-          runner.x = this.x;
-          runner.y = this.y;
-          runner.update();
-        })
-        .addChildTo(this.enemyLayer);
+
+      var enemy = glLayer.enemies.get();
+      if (enemy) {
+        enemy
+          .spawn({
+            x: this.width / 2,
+            y: this.height * 0.2,
+            z: 0,
+            rotX: 0,
+            rotY: 0,
+            rotZ: (90).toRadian(),
+            scaleX: OBJ_SCALE,
+            scaleY: OBJ_SCALE,
+            scaleZ: OBJ_SCALE,
+          })
+          .on("enterframe", function(e) {
+            // this.rotZ += 0.05;
+            // this.x = self.width / 2 + Math.sin(e.app.ticker.frame * 0.1) * self.width * 0.4;
+            runner.x = this.x;
+            runner.y = this.y;
+            runner.update();
+          })
+          .addChildTo(glLayer);
+      }
     },
 
     update: function(app) {

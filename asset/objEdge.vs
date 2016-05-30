@@ -1,6 +1,4 @@
 attribute vec3 position;
-attribute vec2 uv;
-attribute vec3 normal;
 
 attribute float instanceVisible;
 attribute vec3 instancePosition;
@@ -8,17 +6,7 @@ attribute vec3 instanceRotation;
 attribute vec3 instanceScale;
 
 uniform mat4 vpMatrix;
-uniform vec3 lightDirection;
-uniform vec4 diffuseColor;
-uniform vec4 ambientColor;
 uniform vec3 cameraPosition;
-
-varying vec2 vUv;
-varying vec4 vColor;
-varying float vFog;
-
-const float fogStart = 20.0;
-const float fogEnd = 50.0;
 
 // https://github.com/stackgl/glsl-inverse
 mat4 inverse(mat4 m) {
@@ -105,8 +93,6 @@ mat4 scale(vec3 s) {
 }
 
 void main(void) {
-  vUv = uv;
-  
   if (instanceVisible < 0.5) {
     gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
   } else {
@@ -124,18 +110,7 @@ void main(void) {
       ;
     
     mat4 mvpMatrix = vpMatrix * mMatrix;
-    mat4 invMatrix = inverse(mMatrix);
     
-    vec3 invLight = normalize(invMatrix * vec4(-lightDirection, 0.0)).xyz;
-    vec3 invEye = normalize(invMatrix * vec4(cameraPosition, 0.0)).xyz;
-    vec3 halfLE = normalize(invLight + invEye);
-    float diffuse = clamp(dot(normal, invLight), 0.0, 1.0);
-    float specular = pow(clamp(dot(normal, halfLE), 0.0, 1.0), 20.0);
-    vec4 light = diffuseColor * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 0.0);
-    vColor = light + vec4(ambientColor.rgb, 0.0);
-    vec3 pos = (mMatrix * vec4(position, 1.0)).xyz;
-    float distance = length(cameraPosition - pos);
-    vFog = clamp((fogEnd - distance) / (fogEnd - fogStart), 0.0, 1.0);
     gl_Position = mvpMatrix * vec4(position, 1.0);
   }
 }

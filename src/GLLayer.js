@@ -1,5 +1,4 @@
 phina.namespace(function() {
-
   phina.define("glb.GLLayer", {
     superClass: "phina.display.Layer",
 
@@ -20,8 +19,8 @@ phina.namespace(function() {
       this.originY = 0;
 
       this.domElement = document.createElement("canvas");
-      this.domElement.width = this.width / 2;
-      this.domElement.height = this.height / 2;
+      this.domElement.width = this.width * glb.GLLayer.quality;
+      this.domElement.height = this.height * glb.GLLayer.quality;
 
       this.gl = this.domElement.getContext("webgl");
       var extInstancedArrays = phigl.Extensions.getInstancedArrays(this.gl);
@@ -33,6 +32,7 @@ phina.namespace(function() {
       this.terrain = glb.Terrain(gl, extInstancedArrays, this.width, this.height);
       this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, this.width, this.height);
       this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, this.width, this.height);
+      this.enemies = glb.EnemiesDrawer(1, "enemyS1.obj", gl, extInstancedArrays, this.width, this.height);
 
       var self = this;
       var countX = glb.Terrain.countX;
@@ -45,7 +45,7 @@ phina.namespace(function() {
             hex
               .spawn({
                 x: x * unit + z % 2,
-                y: Math.random() < 0.1 ? 4 : 0,
+                y: Math.random() < 0.04 ? 5 : 0,
                 z: z * unit * 1 / Math.sqrt(3) * 1.5,
                 rotX: 0,
                 rotY: 0,
@@ -76,6 +76,7 @@ phina.namespace(function() {
       this.terrain.update(app);
       this.effectSprites.update(app);
       this.bulletSprites.update(app);
+      this.enemies.update(app);
 
       return;
     },
@@ -85,6 +86,7 @@ phina.namespace(function() {
 
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.terrain.render();
+      this.enemies.render();
       this.effectSprites.render();
       this.bulletSprites.render();
       gl.flush();
@@ -95,6 +97,9 @@ phina.namespace(function() {
       // this.draw = function(){};
     },
 
+    _static: {
+      quality: 0.5,
+    },
   });
 
 });
