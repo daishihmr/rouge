@@ -1,6 +1,6 @@
 phina.namespace(function() {
 
-  phina.define("glb.EnemiesDrawer", {
+  phina.define("glb.EnemyDrawer", {
 
     gl: null,
     faceDrawer: null,
@@ -29,11 +29,11 @@ phina.namespace(function() {
           // rotation
           0, 0, 0,
           // scale
-          1, 1, 1
+          10, 10, 10
         );
       }
 
-      var obj = phina.asset.AssetManager.get("obj", objName);
+      var obj = phina.asset.AssetManager.get("obj", objName + ".obj");
 
       this.faceDrawer
         .setProgram(phigl.Program(gl).attach("obj.vs").attach("obj.fs").link())
@@ -51,7 +51,8 @@ phina.namespace(function() {
           "lightDirection",
           "diffuseColor",
           "ambientColor",
-          "cameraPosition"
+          "cameraPosition",
+          "texture"
         );
 
       // this.edgeDrawer
@@ -85,8 +86,9 @@ phina.namespace(function() {
 
       this.lightDirection = vec3.set(vec3.create(), 1, -1, -1);
       this.faceDrawer.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
-      this.faceDrawer.uniforms.diffuseColor.value = [0.4, 0.4, 0.4, 1.0];
+      this.faceDrawer.uniforms.diffuseColor.value = [0.8, 0.8, 0.8, 1.0];
       this.faceDrawer.uniforms.ambientColor.value = [0.4, 0.4, 0.4, 1.0];
+      this.faceDrawer.uniforms.texture.setValue(0).setTexture(phigl.Texture(gl, objName + ".png"));
       // this.edgeDrawer.uniforms.color.value = [1.0, 1.0, 1.0, 1.0];
 
       var self = this;

@@ -81,18 +81,18 @@ phina.namespace(function() {
       this.edgeDrawer.uniforms.vpMatrix.value = mat4.mul(mat4.create(), pMatrix, vMatrix);
       this.edgeDrawer.uniforms.cameraPosition.value = this.cameraPosition;
 
-      this.lightDirection = vec3.set(vec3.create(), 1, -1, -1);
+      this.lightDirection = vec3.set(vec3.create(), 2, 0.5, 0);
       this.faceDrawer.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
-      this.faceDrawer.uniforms.diffuseColor.value = [0.22, 0.22, 0.22 * 2, 0.7];
-      this.faceDrawer.uniforms.ambientColor.value = [0.10, 0.10, 0.10, 1.0];
-      this.edgeDrawer.uniforms.color.value = [1.0, 1.0, 1.0, 1.0];
+      this.faceDrawer.uniforms.diffuseColor.value = [0.22, 0.22 * 1.6, 0.22, 0.65];
+      this.faceDrawer.uniforms.ambientColor.value = [0.05, 0.05, 0.05, 1.0];
+      this.edgeDrawer.uniforms.color.value = [0.5 * 1.2, 0.5, 0.5, 1.0];
 
       var self = this;
       this.pool = Array.range(0, this.count).map(function(id) {
         return glb.Obj(id, instanceData, instanceStride)
           .on("enterframe", function() {
-            this.x += self.cameraPosition[0] * 0.015;
-            this.z += self.cameraPosition[2] * 0.015;
+            this.x += self.cameraPosition[0] * 0.025;
+            this.z += self.cameraPosition[2] * 0.025;
 
             var countX = glb.Terrain.countX;
             var countZ = glb.Terrain.countZ;
@@ -116,7 +116,7 @@ phina.namespace(function() {
 
     update: function(app) {
       var f = app.ticker.frame * 0.001;
-      this.lightDirection = vec3.set(this.lightDirection, Math.cos(f * 10) * 2, 1, Math.sin(f * 10) * 2);
+      this.lightDirection = vec3.set(this.lightDirection, Math.cos(f * 5) * 1, 0.5, Math.sin(f * 5) * 1);
       vec3.normalize(this.lightDirection, this.lightDirection);
       this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
 
@@ -132,7 +132,9 @@ phina.namespace(function() {
       var gl = this.gl;
       gl.enable(gl.BLEND);
       gl.enable(gl.DEPTH_TEST);
+      gl.enable(gl.CULL_FACE);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.cullFace(gl.FRONT);
 
       this.edgeDrawer.draw(this.count);
       this.faceDrawer.draw(this.count);

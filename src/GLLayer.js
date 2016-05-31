@@ -32,7 +32,7 @@ phina.namespace(function() {
       this.terrain = glb.Terrain(gl, extInstancedArrays, this.width, this.height);
       this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, this.width, this.height);
       this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, this.width, this.height);
-      this.enemies = glb.EnemiesDrawer(1, "enemyS1.obj", gl, extInstancedArrays, this.width, this.height);
+      this.enemies = glb.EnemyDrawer(1, "enemyS3", gl, extInstancedArrays, this.width, this.height);
 
       var self = this;
       var countX = glb.Terrain.countX;
@@ -45,16 +45,21 @@ phina.namespace(function() {
             hex
               .spawn({
                 x: x * unit + z % 2,
-                y: Math.random() < 0.04 ? 5 : 0,
+                y: 0,
                 z: z * unit * 1 / Math.sqrt(3) * 1.5,
-                rotX: 0,
-                rotY: 0,
+                rotX: (-90).toRadian(),
+                rotY: (90).toRadian(),
                 rotZ: 0,
-                scaleX: 1.1,
-                scaleY: 1.1,
-                scaleZ: 1.1,
+                scaleX: 1.2,
+                scaleY: 1.2,
+                scaleZ: 1.2,
               })
               .addChildTo(self);
+            if (Math.random() < 0.03) {
+              hex.on("enterframe", function(e) {
+                this.y = (1.0 + Math.sin(e.app.ticker.frame * 0.01)) * 2.5;
+              });
+            }
           }
         });
       });
@@ -98,7 +103,7 @@ phina.namespace(function() {
     },
 
     _static: {
-      quality: 0.5,
+      quality: 1.0,
     },
   });
 

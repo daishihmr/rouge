@@ -193,10 +193,23 @@ phina.namespace(function() {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.CULL_FACE);
 
       this.uniforms.globalScale.value = 1.0;
       // console.log("bullet draw");
       this.draw(this._count);
+    },
+  });
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.DownloadScene", {
+    superClass: "phina.game.LoadingScene",
+
+    init: function(options) {
+      this.superInit(options);
     },
   });
 
@@ -391,6 +404,7 @@ phina.namespace(function() {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
       gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.CULL_FACE);
 
       this.uniforms.globalScale.value = 1.0;
       // console.log("effect draw");
@@ -402,7 +416,7 @@ phina.namespace(function() {
 
 phina.namespace(function() {
 
-  phina.define("glb.EnemiesDrawer", {
+  phina.define("glb.EnemyDrawer", {
 
     gl: null,
     faceDrawer: null,
@@ -431,11 +445,11 @@ phina.namespace(function() {
           // rotation
           0, 0, 0,
           // scale
-          1, 1, 1
+          10, 10, 10
         );
       }
 
-      var obj = phina.asset.AssetManager.get("obj", objName);
+      var obj = phina.asset.AssetManager.get("obj", objName + ".obj");
 
       this.faceDrawer
         .setProgram(phigl.Program(gl).attach("obj.vs").attach("obj.fs").link())
@@ -453,7 +467,8 @@ phina.namespace(function() {
           "lightDirection",
           "diffuseColor",
           "ambientColor",
-          "cameraPosition"
+          "cameraPosition",
+          "texture"
         );
 
       // this.edgeDrawer
@@ -487,8 +502,9 @@ phina.namespace(function() {
 
       this.lightDirection = vec3.set(vec3.create(), 1, -1, -1);
       this.faceDrawer.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
-      this.faceDrawer.uniforms.diffuseColor.value = [0.4, 0.4, 0.4, 1.0];
+      this.faceDrawer.uniforms.diffuseColor.value = [0.8, 0.8, 0.8, 1.0];
       this.faceDrawer.uniforms.ambientColor.value = [0.4, 0.4, 0.4, 1.0];
+      this.faceDrawer.uniforms.texture.setValue(0).setTexture(phigl.Texture(gl, objName + ".png"));
       // this.edgeDrawer.uniforms.color.value = [1.0, 1.0, 1.0, 1.0];
 
       var self = this;
@@ -567,7 +583,7 @@ phina.namespace(function() {
       this.terrain = glb.Terrain(gl, extInstancedArrays, this.width, this.height);
       this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, this.width, this.height);
       this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, this.width, this.height);
-      this.enemies = glb.EnemiesDrawer(1, "enemyS1.obj", gl, extInstancedArrays, this.width, this.height);
+      this.enemies = glb.EnemyDrawer(1, "enemyS3", gl, extInstancedArrays, this.width, this.height);
 
       var self = this;
       var countX = glb.Terrain.countX;
@@ -580,16 +596,21 @@ phina.namespace(function() {
             hex
               .spawn({
                 x: x * unit + z % 2,
-                y: Math.random() < 0.04 ? 5 : 0,
+                y: 0,
                 z: z * unit * 1 / Math.sqrt(3) * 1.5,
-                rotX: 0,
-                rotY: 0,
+                rotX: (-90).toRadian(),
+                rotY: (90).toRadian(),
                 rotZ: 0,
-                scaleX: 1.1,
-                scaleY: 1.1,
-                scaleZ: 1.1,
+                scaleX: 1.2,
+                scaleY: 1.2,
+                scaleZ: 1.2,
               })
               .addChildTo(self);
+            if (Math.random() < 0.03) {
+              hex.on("enterframe", function(e) {
+                this.y = (1.0 + Math.sin(e.app.ticker.frame * 0.01)) * 2.5;
+              });
+            }
           }
         });
       });
@@ -633,7 +654,55 @@ phina.namespace(function() {
     },
 
     _static: {
-      quality: 0.5,
+      quality: 1.0,
+    },
+  });
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.LoadScene", {
+    superClass: "phina.display.DisplayScene",
+
+    init: function(gl) {
+      this.superInit();
+      this.gl = gl;
+    },
+
+    load: function() {
+      var gl = this.gl;
+      var manager = phina.asset.AssetManager;
+
+      manager.assets["obj"].forIn(function(key, obj) {
+        manager.set("ibo", key, phigl.Ibo(gl, obj.getIndices()));
+        manager.set("vbo", key, phigl.Vbo(gl, obj.getAttributeData()));
+      });
+
+      manager.assets["image"].forIn(function(key, image) {
+        manager.set("texture", key, phigl.Texture(gl, image));
+      });
+
+      return this;
+    },
+
+    deleteAll: function() {
+      var manager = phina.asset.AssetManager;
+      manager.assets.vbo.forIn(function(key, vbo) {
+        vbo.delete();
+      });
+      manager.assets.ibo.forIn(function(key, ibo) {
+        ibo.delete();
+      });
+      manager.assets.texture.forIn(function(key, texture) {
+        texture.delete();
+      });
+
+      manager.assets.vbo = {};
+      manager.assets.ibo = {};
+      manager.assets.texture = {};
+
+      return this;
     },
   });
 
@@ -761,7 +830,7 @@ phina.namespace(function() {
           // position
           p.x, p.y, p.z,
           // texCoord
-          t.u, t.v,
+          t.u, 1.0 - t.v,
           // normal
           n.x, n.y, n.z
         ];
@@ -901,18 +970,18 @@ phina.namespace(function() {
       this.edgeDrawer.uniforms.vpMatrix.value = mat4.mul(mat4.create(), pMatrix, vMatrix);
       this.edgeDrawer.uniforms.cameraPosition.value = this.cameraPosition;
 
-      this.lightDirection = vec3.set(vec3.create(), 1, -1, -1);
+      this.lightDirection = vec3.set(vec3.create(), 2, 0.5, 0);
       this.faceDrawer.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
-      this.faceDrawer.uniforms.diffuseColor.value = [0.22, 0.22, 0.22 * 2, 0.7];
-      this.faceDrawer.uniforms.ambientColor.value = [0.10, 0.10, 0.10, 1.0];
-      this.edgeDrawer.uniforms.color.value = [1.0, 1.0, 1.0, 1.0];
+      this.faceDrawer.uniforms.diffuseColor.value = [0.22, 0.22 * 1.6, 0.22, 0.65];
+      this.faceDrawer.uniforms.ambientColor.value = [0.05, 0.05, 0.05, 1.0];
+      this.edgeDrawer.uniforms.color.value = [0.5 * 1.2, 0.5, 0.5, 1.0];
 
       var self = this;
       this.pool = Array.range(0, this.count).map(function(id) {
         return glb.Obj(id, instanceData, instanceStride)
           .on("enterframe", function() {
-            this.x += self.cameraPosition[0] * 0.015;
-            this.z += self.cameraPosition[2] * 0.015;
+            this.x += self.cameraPosition[0] * 0.025;
+            this.z += self.cameraPosition[2] * 0.025;
 
             var countX = glb.Terrain.countX;
             var countZ = glb.Terrain.countZ;
@@ -936,7 +1005,7 @@ phina.namespace(function() {
 
     update: function(app) {
       var f = app.ticker.frame * 0.001;
-      this.lightDirection = vec3.set(this.lightDirection, Math.cos(f * 10) * 2, 1, Math.sin(f * 10) * 2);
+      this.lightDirection = vec3.set(this.lightDirection, Math.cos(f * 5) * 1, 0.5, Math.sin(f * 5) * 1);
       vec3.normalize(this.lightDirection, this.lightDirection);
       this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
 
@@ -952,7 +1021,9 @@ phina.namespace(function() {
       var gl = this.gl;
       gl.enable(gl.BLEND);
       gl.enable(gl.DEPTH_TEST);
+      gl.enable(gl.CULL_FACE);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.cullFace(gl.FRONT);
 
       this.edgeDrawer.draw(this.count);
       this.faceDrawer.draw(this.count);

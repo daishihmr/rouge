@@ -46,7 +46,7 @@ phina.namespace(function() {
           // position
           p.x, p.y, p.z,
           // texCoord
-          t.u, t.v,
+          t.u, 1.0 - t.v,
           // normal
           n.x, n.y, n.z
         ];

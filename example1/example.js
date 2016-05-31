@@ -18,16 +18,21 @@ phina.namespace(function() {
         phina.game.ManagerScene({
           scenes: [{
             label: "load",
-            className: "phina.game.LoadingScene",
+            className: "glb.DownloadScene",
             arguments: {
               assets: {
                 obj: {
                   "hex.obj": "../asset/hex.obj",
                   "cube.obj": "../asset/cube.obj",
                   "enemyS1.obj": "../asset/enemyS1.obj",
+                  "enemyS2.obj": "../asset/enemyS2.obj",
+                  "enemyS3.obj": "../asset/enemyS3.obj",
                 },
                 image: {
                   "bullets.png": "../asset/bullets.png",
+                  "enemyS1.png": "../asset/enemyS1.png",
+                  "enemyS2.png": "../asset/enemyS2.png",
+                  "enemyS3.png": "../asset/enemyS3.png",
                 },
                 vertexShader: {
                   "bulletSprites.vs": "../asset/bulletSprites.vs",
@@ -96,42 +101,42 @@ phina.namespace(function() {
         ]);
       };
       var pattern = new bulletml.Root({
-        // top0: _.action([
-        //   _.repeat(Infinity, [
-        //     _.fire(_.bullet(_.direction(2, "sequance"), _.action([_.wait(1), _.vanish()]))),
-        //     _.wait(2),
-        //     _.repeat(w, [
-        //       _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(20), { type: 1 })),
-        //     ]),
-        //   ]),
-        // ]),
-        // top1: _.action([
-        //   _.repeat(Infinity, [
-        //     _.fire(_.bullet(_.direction(-4, "sequance"), _.action([_.wait(1), _.vanish()]))),
-        //     _.wait(2),
-        //     _.repeat(w, [
-        //       _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(10), { type: 9 })),
-        //     ]),
-        //   ]),
-        // ]),
-        // top2: _.action([
-        //   _.repeat(Infinity, [
-        //     _.fire(_.bullet(_.direction(5, "sequance"), _.action([_.wait(1), _.vanish()]))),
-        //     _.wait(6),
-        //     _.repeat(w, [
-        //       _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 33 })),
-        //     ]),
-        //   ]),
-        // ]),
-        // top3: _.action([
-        //   _.repeat(Infinity, [
-        //     _.fire(_.bullet(_.direction(-5, "sequance"), _.action([_.wait(1), _.vanish()]))),
-        //     _.wait(6),
-        //     _.repeat(w, [
-        //       _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 41 })),
-        //     ]),
-        //   ]),
-        // ]),
+        top0: _.action([
+          _.repeat(Infinity, [
+            _.fire(_.bullet(_.direction(2, "sequance"), _.action([_.wait(1), _.vanish()]))),
+            _.wait(2),
+            _.repeat(w, [
+              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(20), { type: 1 })),
+            ]),
+          ]),
+        ]),
+        top1: _.action([
+          _.repeat(Infinity, [
+            _.fire(_.bullet(_.direction(-4, "sequance"), _.action([_.wait(1), _.vanish()]))),
+            _.wait(2),
+            _.repeat(w, [
+              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(10), { type: 9 })),
+            ]),
+          ]),
+        ]),
+        top2: _.action([
+          _.repeat(Infinity, [
+            _.fire(_.bullet(_.direction(5, "sequance"), _.action([_.wait(1), _.vanish()]))),
+            _.wait(6),
+            _.repeat(w, [
+              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 33 })),
+            ]),
+          ]),
+        ]),
+        top3: _.action([
+          _.repeat(Infinity, [
+            _.fire(_.bullet(_.direction(-5, "sequance"), _.action([_.wait(1), _.vanish()]))),
+            _.wait(6),
+            _.repeat(w, [
+              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 41 })),
+            ]),
+          ]),
+        ]),
       });
 
       var runner = pattern.createRunner(config);
@@ -151,7 +156,7 @@ phina.namespace(function() {
             scaleZ: OBJ_SCALE,
           })
           .on("enterframe", function(e) {
-            // this.rotZ += 0.05;
+            this.rotZ += 0.05;
             // this.x = self.width / 2 + Math.sin(e.app.ticker.frame * 0.1) * self.width * 0.4;
             runner.x = this.x;
             runner.y = this.y;
