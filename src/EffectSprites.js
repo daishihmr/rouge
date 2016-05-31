@@ -10,7 +10,7 @@ phina.namespace(function() {
     init: function(gl, ext, w, h) {
       this.superInit(gl, ext);
       this
-        .setProgram(phigl.Program(gl).attach("effectSprites.vs").attach("effectSprites.fs").link())
+        .setProgram(phina.asset.AssetManager.get("shader", "effectSprites"))
         .setDrawMode(gl.TRIANGLE_STRIP)
         .setIndexValues([0, 1, 2, 3])
         .setAttributes("position", "uv")

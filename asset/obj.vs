@@ -3,9 +3,10 @@ attribute vec2 uv;
 attribute vec3 normal;
 
 attribute float instanceVisible;
-attribute vec3 instancePosition;
-attribute vec3 instanceRotation;
-attribute vec3 instanceScale;
+attribute vec4 instanceMatrix0;
+attribute vec4 instanceMatrix1;
+attribute vec4 instanceMatrix2;
+attribute vec4 instanceMatrix3;
 
 uniform mat4 vpMatrix;
 uniform vec3 lightDirection;
@@ -106,18 +107,12 @@ void main(void) {
   if (instanceVisible < 0.5) {
     gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
   } else {
-    mat4 mMatrix = 
-      mat4(
-        vec4(1.0, 0.0, 0.0, 0.0),
-        vec4(0.0, 1.0, 0.0, 0.0),
-        vec4(0.0, 0.0, 1.0, 0.0),
-        vec4(instancePosition, 1.0)
-      ) *
-      rotZ(instanceRotation.z) *
-      rotY(instanceRotation.y) *
-      rotX(instanceRotation.x) *
-      scale(instanceScale)
-      ;
+    mat4 mMatrix = mat4(
+      instanceMatrix0,
+      instanceMatrix1,
+      instanceMatrix2,
+      instanceMatrix3
+    );
     
     mat4 mvpMatrix = vpMatrix * mMatrix;
     mat4 invMatrix = inverse(mMatrix);

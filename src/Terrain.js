@@ -22,27 +22,28 @@ phina.namespace(function() {
         instanceData.push(
           // visible
           0,
-          // position
-          0, 0, 0,
-          // rotation
-          0, 0, 0,
-          // scale
-          1, 1, 1
+          // m0
+          1, 0, 0, 0,
+          // m1
+          0, 1, 0, 0,
+          // m2
+          0, 0, 1, 0,
+          // m3
+          0, 0, 0, 1
         );
       }
 
-      var obj = phina.asset.AssetManager.get("obj", "hex.obj");
-
       this.faceDrawer
-        .setProgram(phigl.Program(gl).attach("terrain.vs").attach("terrain.fs").link())
-        .setIndexValues(obj.getIndices())
+        .setProgram(phina.asset.AssetManager.get("shader", "terrain"))
+        .setIbo(phina.asset.AssetManager.get("ibo", "hex.obj"))
         .setAttributes("position", "uv", "normal")
-        .setAttributeData(obj.getAttributeData())
+        .setAttributeVbo(phina.asset.AssetManager.get("vbo", "hex.obj"))
         .setInstanceAttributes(
           "instanceVisible",
-          "instancePosition",
-          "instanceRotation",
-          "instanceScale"
+          "instanceMatrix0",
+          "instanceMatrix1",
+          "instanceMatrix2",
+          "instanceMatrix3"
         )
         .setUniforms(
           "vpMatrix",
@@ -54,15 +55,16 @@ phina.namespace(function() {
 
       this.edgeDrawer
         .setDrawMode(gl.LINES)
-        .setProgram(phigl.Program(gl).attach("terrainEdge.vs").attach("terrainEdge.fs").link())
-        .setIndexValues(obj.getIndices())
+        .setProgram(phina.asset.AssetManager.get("shader", "terrainEdge"))
+        .setIbo(phina.asset.AssetManager.get("edgesIbo", "hex.obj"))
         .setAttributes("position")
-        .setAttributeData(obj.getAttributeDataEdges())
+        .setAttributeVbo(phina.asset.AssetManager.get("edgesVbo", "hex.obj"))
         .setInstanceAttributes(
           "instanceVisible",
-          "instancePosition",
-          "instanceRotation",
-          "instanceScale"
+          "instanceMatrix0",
+          "instanceMatrix1",
+          "instanceMatrix2",
+          "instanceMatrix3"
         )
         .setUniforms(
           "vpMatrix",
@@ -83,9 +85,9 @@ phina.namespace(function() {
 
       this.lightDirection = vec3.set(vec3.create(), 2, 0.5, 0);
       this.faceDrawer.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
-      this.faceDrawer.uniforms.diffuseColor.value = [0.22, 0.22 * 1.6, 0.22, 0.65];
+      this.faceDrawer.uniforms.diffuseColor.value = [0.22, 0.22, 0.22 * 1.6, 0.65];
       this.faceDrawer.uniforms.ambientColor.value = [0.05, 0.05, 0.05, 1.0];
-      this.edgeDrawer.uniforms.color.value = [0.5 * 1.2, 0.5, 0.5, 1.0];
+      this.edgeDrawer.uniforms.color.value = [0.5, 0.5, 0.5 * 1.2, 1.0];
 
       var self = this;
       this.pool = Array.range(0, this.count).map(function(id) {

@@ -7,22 +7,6 @@ phina.namespace(function() {
       this.superInit();
     },
 
-    getIndices: function(objectName, groupName) {
-      objectName = objectName || "defaultObject";
-      groupName = groupName || "defaultGroup";
-
-      var obj = globj.ObjParser.parse(this.data)[objectName].groups[groupName];
-
-      var vertexSize = 0;
-      obj.faces.forEach(function(face) {
-        for (var i = 1; i < face.length - 1; i++) {
-          vertexSize += 3;
-        }
-      });
-
-      return Array.range(vertexSize);
-    },
-
     getAttributeData: function(objectName, groupName) {
       objectName = objectName || "defaultObject";
       groupName = groupName || "defaultGroup";

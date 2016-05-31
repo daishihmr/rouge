@@ -4,6 +4,7 @@ phina.namespace(function() {
 
     renderChildBySelf: true,
 
+    ready: false,
     domElement: null,
     gl: null,
     terrain: null,
@@ -23,16 +24,18 @@ phina.namespace(function() {
       this.domElement.height = this.height * glb.GLLayer.quality;
 
       this.gl = this.domElement.getContext("webgl");
-      var extInstancedArrays = phigl.Extensions.getInstancedArrays(this.gl);
-      var extVertexArrayObject = phigl.Extensions.getVertexArrayObject(this.gl);
-
+      this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    },
+    
+    start: function() {
       var gl = this.gl;
-      gl.clearColor(0.0, 0.0, 0.0, 0.0);
+      var extInstancedArrays = phigl.Extensions.getInstancedArrays(gl);
+      var extVertexArrayObject = phigl.Extensions.getVertexArrayObject(gl);
 
       this.terrain = glb.Terrain(gl, extInstancedArrays, this.width, this.height);
       this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, this.width, this.height);
       this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, this.width, this.height);
-      this.enemies = glb.EnemyDrawer(1, "enemyS3", gl, extInstancedArrays, this.width, this.height);
+      this.enemyDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
 
       var self = this;
       var countX = glb.Terrain.countX;
@@ -63,6 +66,8 @@ phina.namespace(function() {
           }
         });
       });
+      
+      this.ready = true;
     },
 
     getHex: function() {
@@ -78,20 +83,24 @@ phina.namespace(function() {
     },
 
     update: function(app) {
+      if (!this.ready) return;
+
       this.terrain.update(app);
       this.effectSprites.update(app);
       this.bulletSprites.update(app);
-      this.enemies.update(app);
+      this.enemyDrawer.update(app);
 
       return;
     },
 
     draw: function(canvas) {
+      if (!this.ready) return;
+
       var gl = this.gl;
 
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.terrain.render();
-      this.enemies.render();
+      this.enemyDrawer.render();
       this.effectSprites.render();
       this.bulletSprites.render();
       gl.flush();

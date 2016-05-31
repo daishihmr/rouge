@@ -16,46 +16,54 @@ phina.namespace(function() {
       })
       .replaceScene(
         phina.game.ManagerScene({
-          scenes: [{
-            label: "load",
-            className: "glb.DownloadScene",
-            arguments: {
-              assets: {
-                obj: {
-                  "hex.obj": "../asset/hex.obj",
-                  "cube.obj": "../asset/cube.obj",
-                  "enemyS1.obj": "../asset/enemyS1.obj",
-                  "enemyS2.obj": "../asset/enemyS2.obj",
-                  "enemyS3.obj": "../asset/enemyS3.obj",
-                },
-                image: {
-                  "bullets.png": "../asset/bullets.png",
-                  "enemyS1.png": "../asset/enemyS1.png",
-                  "enemyS2.png": "../asset/enemyS2.png",
-                  "enemyS3.png": "../asset/enemyS3.png",
-                },
-                vertexShader: {
-                  "bulletSprites.vs": "../asset/bulletSprites.vs",
-                  "effectSprites.vs": "../asset/effectSprites.vs",
-                  "terrain.vs": "../asset/terrain.vs",
-                  "terrainEdge.vs": "../asset/terrainEdge.vs",
-                  "obj.vs": "../asset/obj.vs",
-                  "objEdge.vs": "../asset/objEdge.vs",
-                },
-                fragmentShader: {
-                  "bulletSprites.fs": "../asset/bulletSprites.fs",
-                  "effectSprites.fs": "../asset/effectSprites.fs",
-                  "terrain.fs": "../asset/terrain.fs",
-                  "terrainEdge.fs": "../asset/terrainEdge.fs",
-                  "obj.fs": "../asset/obj.fs",
-                  "objEdge.fs": "../asset/objEdge.fs",
+          scenes: [
+
+            {
+              label: "download",
+              className: "glb.DownloadScene",
+              arguments: {
+                assets: {
+                  obj: {
+                    "hex.obj": "../asset/hex.obj",
+                    "cube.obj": "../asset/cube.obj",
+                    "enemyS1.obj": "../asset/enemyS1.obj",
+                    "enemyS2.obj": "../asset/enemyS2.obj",
+                    "enemyS3.obj": "../asset/enemyS3.obj",
+                    // "p64.obj": "../asset/p64.obj",
+                  },
+                  image: {
+                    "bullets.png": "../asset/bullets.png",
+                    "enemyS1.png": "../asset/enemyS1.png",
+                    "enemyS2.png": "../asset/enemyS2.png",
+                    "enemyS3.png": "../asset/enemyS3.png",
+                    // "p64.png": "../asset/p64.png",
+                  },
+                  vertexShader: {
+                    "bulletSprites.vs": "../asset/bulletSprites.vs",
+                    "effectSprites.vs": "../asset/effectSprites.vs",
+                    "terrain.vs": "../asset/terrain.vs",
+                    "terrainEdge.vs": "../asset/terrainEdge.vs",
+                    "obj.vs": "../asset/obj.vs",
+                    "objEdge.vs": "../asset/objEdge.vs",
+                  },
+                  fragmentShader: {
+                    "bulletSprites.fs": "../asset/bulletSprites.fs",
+                    "effectSprites.fs": "../asset/effectSprites.fs",
+                    "terrain.fs": "../asset/terrain.fs",
+                    "terrainEdge.fs": "../asset/terrainEdge.fs",
+                    "obj.fs": "../asset/obj.fs",
+                    "objEdge.fs": "../asset/objEdge.fs",
+                  },
                 },
               },
             },
-          }, {
-            label: "main",
-            className: "MainScene",
-          }, ],
+
+            {
+              label: "main",
+              className: "MainScene",
+            },
+
+          ],
         })
       )
       .enableStats()
@@ -79,7 +87,19 @@ phina.namespace(function() {
         },
       });
 
+      this.one("enter", function() {
+        var loadScene = glb.LoadScene(this.glLayer.gl);
+        loadScene.on("exit", function() {
+          this.start();
+        }.bind(this));
+        this.app.pushScene(loadScene);
+      })
+    },
+
+    start: function() {
       var glLayer = this.glLayer;
+
+      glLayer.start();
 
       var config = {
         target: { x: this.width / 2, y: this.height * 0.9 },
@@ -90,73 +110,80 @@ phina.namespace(function() {
       };
 
       var _ = bulletml.dsl;
-      var w = 8;
+      var w = 4;
       var speed = function(s) {
         return _.action([
-          _.changeSpeed(_.speed(8), 1),
+          _.changeSpeed(_.speed(20), 1),
           _.wait(1),
-          _.changeSpeed(_.speed(0), 10),
-          _.wait(30),
+          _.changeSpeed(_.speed(0), 1),
+          _.wait(15),
           _.changeSpeed(_.speed(s), 25),
         ]);
       };
       var pattern = new bulletml.Root({
         top0: _.action([
           _.repeat(Infinity, [
-            _.fire(_.bullet(_.direction(2, "sequance"), _.action([_.wait(1), _.vanish()]))),
-            _.wait(2),
-            _.repeat(w, [
-              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(20), { type: 1 })),
+            _.repeat(5, [
+              _.fire(_.bullet(_.direction(10, "sequance"), _.action([_.wait(1), _.vanish()]))),
+              _.wait(2),
+              _.repeat(w, [
+                _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(20), { type: 1 })),
+              ]),
             ]),
+            _.wait(90),
           ]),
         ]),
-        top1: _.action([
-          _.repeat(Infinity, [
-            _.fire(_.bullet(_.direction(-4, "sequance"), _.action([_.wait(1), _.vanish()]))),
-            _.wait(2),
-            _.repeat(w, [
-              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(10), { type: 9 })),
-            ]),
-          ]),
-        ]),
-        top2: _.action([
-          _.repeat(Infinity, [
-            _.fire(_.bullet(_.direction(5, "sequance"), _.action([_.wait(1), _.vanish()]))),
-            _.wait(6),
-            _.repeat(w, [
-              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 33 })),
-            ]),
-          ]),
-        ]),
-        top3: _.action([
-          _.repeat(Infinity, [
-            _.fire(_.bullet(_.direction(-5, "sequance"), _.action([_.wait(1), _.vanish()]))),
-            _.wait(6),
-            _.repeat(w, [
-              _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 41 })),
-            ]),
-          ]),
-        ]),
+        // top1: _.action([
+        //   _.repeat(Infinity, [
+        //     _.fire(_.bullet(_.direction(-4, "sequance"), _.action([_.wait(1), _.vanish()]))),
+        //     _.wait(2),
+        //     _.repeat(w, [
+        //       _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(10), { type: 9 })),
+        //     ]),
+        //   ]),
+        // ]),
+        // top2: _.action([
+        //   _.repeat(Infinity, [
+        //     _.fire(_.bullet(_.direction(5, "sequance"), _.action([_.wait(1), _.vanish()]))),
+        //     _.wait(6),
+        //     _.repeat(w, [
+        //       _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 33 })),
+        //     ]),
+        //   ]),
+        // ]),
+        // top3: _.action([
+        //   _.repeat(Infinity, [
+        //     _.fire(_.bullet(_.direction(-5, "sequance"), _.action([_.wait(1), _.vanish()]))),
+        //     _.wait(6),
+        //     _.repeat(w, [
+        //       _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(7), { type: 41 })),
+        //     ]),
+        //   ]),
+        // ]),
       });
 
       var runner = pattern.createRunner(config);
 
-      var enemy = glLayer.enemies.get();
+      glLayer.enemyDrawer.addObjType("enemyS1");
+      glLayer.enemyDrawer.addObjType("enemyS3");
+
+      var enemy = glLayer.enemyDrawer.get("enemyS1");
       if (enemy) {
         enemy
           .spawn({
-            x: this.width / 2,
+            x: this.width * 0.4,
             y: this.height * 0.2,
             z: 0,
             rotX: 0,
             rotY: 0,
-            rotZ: (90).toRadian(),
+            rotZ: 0,
             scaleX: OBJ_SCALE,
             scaleY: OBJ_SCALE,
             scaleZ: OBJ_SCALE,
           })
           .on("enterframe", function(e) {
-            this.rotZ += 0.05;
+            this.rotateZ(0.1);
+
             // this.x = self.width / 2 + Math.sin(e.app.ticker.frame * 0.1) * self.width * 0.4;
             runner.x = this.x;
             runner.y = this.y;
