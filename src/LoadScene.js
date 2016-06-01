@@ -16,6 +16,8 @@ phina.namespace(function() {
 
     onprogress: function() {
       this.count += 1;
+      
+      // TODO
       console.log(this.count + "/" + this.totalCount);
     },
 

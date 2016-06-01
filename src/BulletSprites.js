@@ -93,13 +93,6 @@ phina.namespace(function() {
             self.pool.push(this);
           });
       });
-
-      // console.log(this);
-
-      // console.log("count = " + this._count);
-      // console.log("this.instanceStride = " + this.instanceStride);
-      // console.log("instanceUnit = " + instanceUnit);
-      // console.log("this.instanceData.length = " + this.instanceData.length);
     },
 
     get: function() {
@@ -119,7 +112,6 @@ phina.namespace(function() {
       gl.disable(gl.CULL_FACE);
 
       this.uniforms.globalScale.value = 1.0;
-      // console.log("bullet draw");
       this.draw(this._count);
     },
   });

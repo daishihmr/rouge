@@ -88,12 +88,9 @@ phina.namespace(function() {
       this.pool = Array.range(0, this._count).map(function(id) {
         return glb.Effect(id, instanceData, instanceStride)
           .on("removed", function() {
-            instanceData[this.index + 0] = 0;
             self.pool.push(this);
           });
       });
-
-      // console.log(this);
     },
 
     _createTexture: function() {
@@ -124,7 +121,6 @@ phina.namespace(function() {
       gl.disable(gl.CULL_FACE);
 
       this.uniforms.globalScale.value = 1.0;
-      // console.log("effect draw");
       this.draw(this._count);
     },
   });

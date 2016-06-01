@@ -3,18 +3,22 @@ phina.namespace(function() {
     superClass: "phina.display.Layer",
 
     renderChildBySelf: true,
-
     ready: false,
+
     domElement: null,
     gl: null,
+
     terrain: null,
+    itemDrawer: null,
     effectSprites: null,
     bulletSprites: null,
+    playerDrawer: null,
+    enemyDrawer: null,
 
     init: function() {
       this.superInit({
-        width: 720,
-        height: 1280,
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
       });
       this.originX = 0;
       this.originY = 0;
@@ -25,25 +29,34 @@ phina.namespace(function() {
 
       this.gl = this.domElement.getContext("webgl");
       this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
+      this.gl.clearDepth(1.0);
     },
-    
+
     start: function() {
       var gl = this.gl;
       var extInstancedArrays = phigl.Extensions.getInstancedArrays(gl);
       var extVertexArrayObject = phigl.Extensions.getVertexArrayObject(gl);
 
       this.terrain = glb.Terrain(gl, extInstancedArrays, this.width, this.height);
+      this.itemDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
       this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, this.width, this.height);
-      this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, this.width, this.height);
       this.enemyDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
+      this.playerDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
+      this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, this.width, this.height);
+      
+      this.glowEffect = glb.GlowEffect(gl, this.domElement.width, this.domElement.height);
 
+      this.setupTerrain();
+    },
+
+    setupTerrain: function() {
       var self = this;
       var countX = glb.Terrain.countX;
       var countZ = glb.Terrain.countZ;
       var unit = glb.Terrain.unit;
       Array.range(-countX, countX).forEach(function(x) {
         Array.range(-countZ, countZ).forEach(function(z) {
-          var hex = self.getHex();
+          var hex = self.terrain.get();
           if (hex) {
             hex
               .spawn({
@@ -66,31 +79,19 @@ phina.namespace(function() {
           }
         });
       });
-      
+
       this.ready = true;
-    },
-
-    getHex: function() {
-      return this.terrain.get();
-    },
-
-    getEffect: function() {
-      return this.effectSprites.get();
-    },
-
-    getBullet: function() {
-      return this.bulletSprites.get();
     },
 
     update: function(app) {
       if (!this.ready) return;
 
       this.terrain.update(app);
+      this.itemDrawer.update(app);
       this.effectSprites.update(app);
-      this.bulletSprites.update(app);
       this.enemyDrawer.update(app);
-
-      return;
+      this.playerDrawer.update(app);
+      this.bulletSprites.update(app);
     },
 
     draw: function(canvas) {
@@ -98,17 +99,29 @@ phina.namespace(function() {
 
       var gl = this.gl;
 
+      this.glowEffect.bindCurrent(0, 0, this.domElement.width, this.domElement.height);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      this.playerDrawer.renderGlow();
+      this.enemyDrawer.renderGlow();
+      this.glowEffect.renderBefore();
+      gl.flush();
+
+      phigl.Framebuffer.unbind(gl);
+      gl.viewport(0, 0, this.domElement.width, this.domElement.height);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.terrain.render();
+      this.itemDrawer.render();
+      // this.effectSprites.render();
       this.enemyDrawer.render();
-      this.effectSprites.render();
+      this.playerDrawer.render();
+      this.glowEffect.renderCurrent();
       this.bulletSprites.render();
       gl.flush();
 
       var image = this.domElement;
       canvas.context.drawImage(image, 0, 0, image.width, image.height, -this.width * this.originX, -this.height * this.originY, this.width, this.height);
 
-      // this.draw = function(){};
+      this.glowEffect.switchFramebuffer();
     },
 
     _static: {

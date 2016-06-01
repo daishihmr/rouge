@@ -35,7 +35,7 @@ phina.namespace(function() {
 
       this.faceDrawer
         .setProgram(phina.asset.AssetManager.get("shader", "terrain"))
-        .setIbo(phina.asset.AssetManager.get("ibo", "hex.obj"))
+        .setIndexBuffer(phina.asset.AssetManager.get("ibo", "hex.obj"))
         .setAttributes("position", "uv", "normal")
         .setAttributeVbo(phina.asset.AssetManager.get("vbo", "hex.obj"))
         .setInstanceAttributes(
@@ -56,7 +56,7 @@ phina.namespace(function() {
       this.edgeDrawer
         .setDrawMode(gl.LINES)
         .setProgram(phina.asset.AssetManager.get("shader", "terrainEdge"))
-        .setIbo(phina.asset.AssetManager.get("edgesIbo", "hex.obj"))
+        .setIndexBuffer(phina.asset.AssetManager.get("edgesIbo", "hex.obj"))
         .setAttributes("position")
         .setAttributeVbo(phina.asset.AssetManager.get("edgesVbo", "hex.obj"))
         .setInstanceAttributes(
@@ -105,15 +105,12 @@ phina.namespace(function() {
             else if (countZ * unit * 1 / Math.sqrt(3) * 1.5 < this.z) this.z -= countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
           })
           .on("removed", function() {
-            instanceData[this.index + 0] = 0;
             self.pool.push(this);
           });
       });
 
       this.faceDrawer.setInstanceAttributeData(this.instanceData);
       this.edgeDrawer.setInstanceAttributeData(this.instanceData);
-
-      // console.log(this);
     },
 
     update: function(app) {

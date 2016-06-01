@@ -59,48 +59,6 @@ mat4 inverse(mat4 m) {
       a20 * b03 - a21 * b01 + a22 * b00) / det;
 }
 
-mat4 rotX(float a) {
-  float c = cos(a);
-  float s = sin(a);
-  return mat4(
-    1.0, 0.0, 0.0, 0.0,
-    0.0,   c,   s, 0.0,
-    0.0,  -s,   c, 0.0,
-    0.0, 0.0, 0.0, 1.0
-  );
-}
-
-mat4 rotY(float a) {
-  float c = cos(a);
-  float s = sin(a);
-  return mat4(
-      c, 0.0,  -s, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-      s, 0.0,   c, 0.0,
-    0.0, 0.0, 0.0, 1.0
-  );
-}
-
-mat4 rotZ(float a) {
-  float c = cos(a);
-  float s = sin(a);
-  return mat4(
-      c,   s, 0.0, 0.0,
-     -s,   c, 0.0, 0.0,
-    0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 1.0
-  );
-}
-
-mat4 scale(vec3 s) {
-  return mat4(
-    s.x, 0.0, 0.0, 0.0,
-    0.0, s.y, 0.0, 0.0,
-    0.0, 0.0, s.z, 0.0,
-    0.0, 0.0, 0.0, 1.0
-  );
-}
-
 void main(void) {
   vUv = uv;
   

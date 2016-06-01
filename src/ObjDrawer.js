@@ -3,10 +3,10 @@ phina.namespace(function() {
   phina.define("glb.ObjDrawer", {
 
     gl: null,
-    count: 0,
 
     objTypes: null,
 
+    counts: null,
     instanceData: null,
     ibos: null,
     vbos: null,
@@ -19,18 +19,17 @@ phina.namespace(function() {
 
     init: function(gl, ext, w, h) {
       this.gl = gl;
-      this.count = 500;
 
       this.objTypes = [];
 
+      this.counts = {};
       this.instanceData = {};
       this.ibos = {};
       this.vbos = {};
       this.textures = {};
       this.pools = {};
 
-      this.faceDrawer = phigl.InstancedDrawable(gl, ext);
-      this.faceDrawer
+      this.faceDrawer = phigl.InstancedDrawable(gl, ext)
         .setProgram(phina.asset.AssetManager.get("shader", "obj"))
         .setAttributes("position", "uv", "normal")
         .setInstanceAttributes(
@@ -49,27 +48,38 @@ phina.namespace(function() {
           "texture"
         );
 
-      var instanceStride = this.faceDrawer.instanceStride / 4;
+      this.glowDrawer = phigl.InstancedDrawable(gl, ext)
+        .setProgram(phina.asset.AssetManager.get("shader", "objGlow"))
+        .setAttributes("position", "uv", "normal")
+        .setInstanceAttributes(
+          "instanceVisible",
+          "instanceMatrix0",
+          "instanceMatrix1",
+          "instanceMatrix2",
+          "instanceMatrix3"
+        )
+        .setUniforms(
+          "vpMatrix",
+          "texture"
+        );
 
-      this.cameraPosition = vec3.create();
-      vec3.set(this.cameraPosition, w / 2, h * 0.75, w * 1.5);
-      var vMatrix = mat4.lookAt(mat4.create(), this.cameraPosition, [w / 2, h / 2, 0], [0, 1, 0]);
-      var pMatrix = mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000);
-      this.faceDrawer.uniforms.vpMatrix.value = mat4.mul(mat4.create(), pMatrix, vMatrix);
-      this.faceDrawer.uniforms.cameraPosition.value = this.cameraPosition;
-
+      this.cameraPosition = vec3.set(vec3.create(), w / 2, h * 0.75, w * 1.5);
+      this.vMatrix = mat4.lookAt(mat4.create(), this.cameraPosition, [w / 2, h / 2, 0], [0, 1, 0]);
+      this.pMatrix = mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000);
+      this.vpMatrix = mat4.create();
       this.lightDirection = vec3.set(vec3.create(), -1.0, 0.0, -1.0);
-      this.faceDrawer.uniforms.lightDirection.value = vec3.normalize(this.lightDirection, this.lightDirection);
-      this.faceDrawer.uniforms.diffuseColor.value = [0.9, 0.9, 0.9, 1.0];
-      this.faceDrawer.uniforms.ambientColor.value = [0.4, 0.4, 0.4, 1.0];
+      this.diffuseColor = [0.9, 0.9, 0.9, 1.0];
+      this.ambientColor = [0.4, 0.4, 0.4, 1.0];
     },
 
-    addObjType: function(objType) {
+    addObjType: function(objType, count) {
+      count = count || 1;
       var self = this;
       var instanceStride = this.faceDrawer.instanceStride / 4;
 
       if (!this.objTypes.contains(objType)) {
-        var instanceData = this.instanceData[objType] = Array.range(this.count).map(function(i) {
+        this.counts[objType] = count;
+        var instanceData = this.instanceData[objType] = Array.range(count).map(function(i) {
           return [
             // visible
             0,
@@ -86,10 +96,10 @@ phina.namespace(function() {
         this.ibos[objType] = phina.asset.AssetManager.get("ibo", objType + ".obj");
         this.vbos[objType] = phina.asset.AssetManager.get("vbo", objType + ".obj");
         this.textures[objType] = phina.asset.AssetManager.get("texture", objType + ".png");
-        this.pools[objType] = Array.range(this.count).map(function(id) {
-          return glb.Obj(id, instanceData, instanceStride)
+        this.pools[objType] = Array.range(count).map(function(id) {
+          return glb.Obj(id, instanceData, instanceStride, objType)
             .on("removed", function() {
-              self.pools[objType].push(this);
+              self.pools[this.objType].push(this);
             });
         });
 
@@ -102,15 +112,8 @@ phina.namespace(function() {
     },
 
     update: function(app) {
-      // var f = app.ticker.frame * 0.01;
-      // this.lightDirection = vec3.set(this.lightDirection, Math.cos(f) * 2, -0.25, Math.sin(f) * 2);
-      // vec3.normalize(this.lightDirection, this.lightDirection);
-      // this.uniforms.lightDirection.value = this.lightDirection;
-
-      // this.objTypes.forEach(function(objType) {
-      //   var instanceData = self.instanceData[objType];
-      //   self.faceDrawer.setInstanceAttributeData(instanceData);
-      // });
+      mat4.mul(this.vpMatrix, this.pMatrix, this.vMatrix);
+      vec3.normalize(this.lightDirection, this.lightDirection);
     },
 
     render: function() {
@@ -120,20 +123,53 @@ phina.namespace(function() {
       gl.enable(gl.DEPTH_TEST);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
+      this.faceDrawer.uniforms.vpMatrix.value = this.vpMatrix;
+      this.faceDrawer.uniforms.cameraPosition.value = this.cameraPosition;
+      this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
+      this.faceDrawer.uniforms.diffuseColor.value = this.diffuseColor;
+      this.faceDrawer.uniforms.ambientColor.value = this.ambientColor;
+
       this.objTypes.forEach(function(objType) {
+        var count = self.counts[objType];
         var instanceData = self.instanceData[objType];
         var ibo = self.ibos[objType];
         var vbo = self.vbos[objType];
         var texture = self.textures[objType];
-        
+
         self.faceDrawer
-          .setIbo(ibo)
+          .setIndexBuffer(ibo)
           .setAttributeVbo(vbo)
           .setInstanceAttributeData(instanceData);
         self.faceDrawer.uniforms.texture.setValue(0).setTexture(texture);
-        self.faceDrawer.draw(self.count);
+        self.faceDrawer.draw(count);
       });
     },
+
+    renderGlow: function() {
+      var self = this;
+      var gl = this.gl;
+      gl.enable(gl.BLEND);
+      gl.enable(gl.DEPTH_TEST);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+      this.glowDrawer.uniforms.vpMatrix.value = this.vpMatrix;
+
+      this.objTypes.forEach(function(objType) {
+        var count = self.counts[objType];
+        var instanceData = self.instanceData[objType];
+        var ibo = self.ibos[objType];
+        var vbo = self.vbos[objType];
+        var texture = self.textures[objType];
+
+        self.glowDrawer
+          .setIndexBuffer(ibo)
+          .setAttributeVbo(vbo)
+          .setInstanceAttributeData(instanceData);
+        self.glowDrawer.uniforms.texture.setValue(0).setTexture(texture);
+        self.glowDrawer.draw(count);
+      });
+    },
+
   });
 
 });

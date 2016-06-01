@@ -170,13 +170,6 @@ phina.namespace(function() {
             self.pool.push(this);
           });
       });
-
-      // console.log(this);
-
-      // console.log("count = " + this._count);
-      // console.log("this.instanceStride = " + this.instanceStride);
-      // console.log("instanceUnit = " + instanceUnit);
-      // console.log("this.instanceData.length = " + this.instanceData.length);
     },
 
     get: function() {
@@ -196,7 +189,6 @@ phina.namespace(function() {
       gl.disable(gl.CULL_FACE);
 
       this.uniforms.globalScale.value = 1.0;
-      // console.log("bullet draw");
       this.draw(this._count);
     },
   });
@@ -267,6 +259,7 @@ phina.namespace(function() {
 
       if (this.x < -100 || 640 + 100 < this.x || this.y < -100 || 960 + 100 < this.y) {
         this.remove();
+        return;
       }
 
       instanceData[index + 1] = this.x;
@@ -277,6 +270,10 @@ phina.namespace(function() {
 
       this.age += 1;
     },
+
+    onremoved: function() {
+      this.instanceData[this.index + 0] = 0;
+    }
   });
 
 });
@@ -371,12 +368,9 @@ phina.namespace(function() {
       this.pool = Array.range(0, this._count).map(function(id) {
         return glb.Effect(id, instanceData, instanceStride)
           .on("removed", function() {
-            instanceData[this.index + 0] = 0;
             self.pool.push(this);
           });
       });
-
-      // console.log(this);
     },
 
     _createTexture: function() {
@@ -407,7 +401,6 @@ phina.namespace(function() {
       gl.disable(gl.CULL_FACE);
 
       this.uniforms.globalScale.value = 1.0;
-      // console.log("effect draw");
       this.draw(this._count);
     },
   });
@@ -419,18 +412,22 @@ phina.namespace(function() {
     superClass: "phina.display.Layer",
 
     renderChildBySelf: true,
-
     ready: false,
+
     domElement: null,
     gl: null,
+
     terrain: null,
+    itemDrawer: null,
     effectSprites: null,
     bulletSprites: null,
+    playerDrawer: null,
+    enemyDrawer: null,
 
     init: function() {
       this.superInit({
-        width: 720,
-        height: 1280,
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
       });
       this.originX = 0;
       this.originY = 0;
@@ -441,25 +438,34 @@ phina.namespace(function() {
 
       this.gl = this.domElement.getContext("webgl");
       this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
+      this.gl.clearDepth(1.0);
     },
-    
+
     start: function() {
       var gl = this.gl;
       var extInstancedArrays = phigl.Extensions.getInstancedArrays(gl);
       var extVertexArrayObject = phigl.Extensions.getVertexArrayObject(gl);
 
       this.terrain = glb.Terrain(gl, extInstancedArrays, this.width, this.height);
+      this.itemDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
       this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, this.width, this.height);
-      this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, this.width, this.height);
       this.enemyDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
+      this.playerDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
+      this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, this.width, this.height);
+      
+      this.glowEffect = glb.GlowEffect(gl, this.domElement.width, this.domElement.height);
 
+      this.setupTerrain();
+    },
+
+    setupTerrain: function() {
       var self = this;
       var countX = glb.Terrain.countX;
       var countZ = glb.Terrain.countZ;
       var unit = glb.Terrain.unit;
       Array.range(-countX, countX).forEach(function(x) {
         Array.range(-countZ, countZ).forEach(function(z) {
-          var hex = self.getHex();
+          var hex = self.terrain.get();
           if (hex) {
             hex
               .spawn({
@@ -482,31 +488,19 @@ phina.namespace(function() {
           }
         });
       });
-      
+
       this.ready = true;
-    },
-
-    getHex: function() {
-      return this.terrain.get();
-    },
-
-    getEffect: function() {
-      return this.effectSprites.get();
-    },
-
-    getBullet: function() {
-      return this.bulletSprites.get();
     },
 
     update: function(app) {
       if (!this.ready) return;
 
       this.terrain.update(app);
+      this.itemDrawer.update(app);
       this.effectSprites.update(app);
-      this.bulletSprites.update(app);
       this.enemyDrawer.update(app);
-
-      return;
+      this.playerDrawer.update(app);
+      this.bulletSprites.update(app);
     },
 
     draw: function(canvas) {
@@ -514,22 +508,133 @@ phina.namespace(function() {
 
       var gl = this.gl;
 
+      this.glowEffect.bindCurrent(0, 0, this.domElement.width, this.domElement.height);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      this.playerDrawer.renderGlow();
+      this.enemyDrawer.renderGlow();
+      this.glowEffect.renderBefore();
+      gl.flush();
+
+      phigl.Framebuffer.unbind(gl);
+      gl.viewport(0, 0, this.domElement.width, this.domElement.height);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.terrain.render();
+      this.itemDrawer.render();
+      // this.effectSprites.render();
       this.enemyDrawer.render();
-      this.effectSprites.render();
+      this.playerDrawer.render();
+      this.glowEffect.renderCurrent();
       this.bulletSprites.render();
       gl.flush();
 
       var image = this.domElement;
       canvas.context.drawImage(image, 0, 0, image.width, image.height, -this.width * this.originX, -this.height * this.originY, this.width, this.height);
 
-      // this.draw = function(){};
+      this.glowEffect.switchFramebuffer();
     },
 
     _static: {
       quality: 1.0,
     },
+  });
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.GlowEffect", {
+
+    gl: null,
+    current: null,
+    before: null,
+    drawer: null,
+
+    width: 0,
+    height: 0,
+
+    init: function(gl, w, h) {
+      this.gl = gl;
+      
+      var s = Math.max(Math.pow(2, ~~Math.log2(w) + 1), Math.pow(2, ~~Math.log2(h) + 1));
+
+      this.current = phigl.Framebuffer(gl, s, s);
+      this.before = phigl.Framebuffer(gl, s, s);
+
+      this.drawer = phigl.Drawable(gl)
+        .setDrawMode(gl.TRIANGLE_STRIP)
+        .setProgram(phina.asset.AssetManager.get("shader", "effect_blur"))
+        .setIndexValues([0, 1, 2, 3])
+        .setAttributes("position", "uv")
+        .setAttributeData([
+          //
+          -1, +1, 0, h / this.current.height,
+          //
+          +1, +1, w / this.current.width, h / this.current.height,
+          //
+          -1, -1, 0, 0,
+          // 
+          +1, -1, w / this.current.width, 0,
+        ])
+        .setUniforms("texture", "alpha", "canvasSize");
+
+      this.copyDrawer = phigl.Drawable(gl)
+        .setDrawMode(gl.TRIANGLE_STRIP)
+        .setProgram(phina.asset.AssetManager.get("shader", "effect_copy"))
+        .setIndexValues([0, 1, 2, 3])
+        .setAttributes("position", "uv")
+        .setAttributeData([
+          //
+          -1, +1, 0, h / this.current.height,
+          //
+          +1, +1, w / this.current.width, h / this.current.height,
+          //
+          -1, -1, 0, 0,
+          // 
+          +1, -1, w / this.current.width, 0,
+        ])
+        .setUniforms("texture", "alpha");
+
+      this.width = w;
+      this.height = h;
+    },
+
+    bindCurrent: function(viewportX, viewportY, viewportW, viewportH) {
+      this.current.bind(viewportX, viewportY, viewportW, viewportH);
+    },
+
+    renderCurrent: function() {
+      var gl = this.gl;
+      gl.enable(gl.BLEND);
+      gl.disable(gl.DEPTH_TEST);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+
+      this.drawer.uniforms.texture.setValue(0).setTexture(this.current.texture);
+      this.drawer.uniforms.alpha.value = 1.0;
+      this.drawer.uniforms.canvasSize.value = this.current.width;
+      this.drawer.draw();
+
+      return this;
+    },
+
+    renderBefore: function() {
+      var gl = this.gl;
+      gl.enable(gl.BLEND);
+      gl.disable(gl.DEPTH_TEST);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+      this.copyDrawer.uniforms.texture.setValue(0).setTexture(this.before.texture);
+      this.copyDrawer.uniforms.alpha.value = 0.95;
+      this.copyDrawer.draw();
+
+      return this;
+    },
+
+    switchFramebuffer: function() {
+      var temp = this.current;
+      this.current = this.before;
+      this.before = temp;
+    },
+
   });
 
 });
@@ -552,6 +657,8 @@ phina.namespace(function() {
 
     onprogress: function() {
       this.count += 1;
+      
+      // TODO
       console.log(this.count + "/" + this.totalCount);
     },
 
@@ -667,11 +774,12 @@ phina.namespace(function() {
 
     dirty: true,
 
-    init: function(id, instanceData, instanceStride) {
+    init: function(id, instanceData, instanceStride, objType) {
       this.superInit();
       this.id = id;
       this.instanceData = instanceData;
       this.index = id * instanceStride;
+      this.objType = objType;
 
       this.position = vec3.create();
       this.quaternion = quat.create();
@@ -909,10 +1017,10 @@ phina.namespace(function() {
   phina.define("glb.ObjDrawer", {
 
     gl: null,
-    count: 0,
 
     objTypes: null,
 
+    counts: null,
     instanceData: null,
     ibos: null,
     vbos: null,
@@ -925,18 +1033,17 @@ phina.namespace(function() {
 
     init: function(gl, ext, w, h) {
       this.gl = gl;
-      this.count = 500;
 
       this.objTypes = [];
 
+      this.counts = {};
       this.instanceData = {};
       this.ibos = {};
       this.vbos = {};
       this.textures = {};
       this.pools = {};
 
-      this.faceDrawer = phigl.InstancedDrawable(gl, ext);
-      this.faceDrawer
+      this.faceDrawer = phigl.InstancedDrawable(gl, ext)
         .setProgram(phina.asset.AssetManager.get("shader", "obj"))
         .setAttributes("position", "uv", "normal")
         .setInstanceAttributes(
@@ -955,27 +1062,38 @@ phina.namespace(function() {
           "texture"
         );
 
-      var instanceStride = this.faceDrawer.instanceStride / 4;
+      this.glowDrawer = phigl.InstancedDrawable(gl, ext)
+        .setProgram(phina.asset.AssetManager.get("shader", "objGlow"))
+        .setAttributes("position", "uv", "normal")
+        .setInstanceAttributes(
+          "instanceVisible",
+          "instanceMatrix0",
+          "instanceMatrix1",
+          "instanceMatrix2",
+          "instanceMatrix3"
+        )
+        .setUniforms(
+          "vpMatrix",
+          "texture"
+        );
 
-      this.cameraPosition = vec3.create();
-      vec3.set(this.cameraPosition, w / 2, h * 0.75, w * 1.5);
-      var vMatrix = mat4.lookAt(mat4.create(), this.cameraPosition, [w / 2, h / 2, 0], [0, 1, 0]);
-      var pMatrix = mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000);
-      this.faceDrawer.uniforms.vpMatrix.value = mat4.mul(mat4.create(), pMatrix, vMatrix);
-      this.faceDrawer.uniforms.cameraPosition.value = this.cameraPosition;
-
+      this.cameraPosition = vec3.set(vec3.create(), w / 2, h * 0.75, w * 1.5);
+      this.vMatrix = mat4.lookAt(mat4.create(), this.cameraPosition, [w / 2, h / 2, 0], [0, 1, 0]);
+      this.pMatrix = mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000);
+      this.vpMatrix = mat4.create();
       this.lightDirection = vec3.set(vec3.create(), -1.0, 0.0, -1.0);
-      this.faceDrawer.uniforms.lightDirection.value = vec3.normalize(this.lightDirection, this.lightDirection);
-      this.faceDrawer.uniforms.diffuseColor.value = [0.9, 0.9, 0.9, 1.0];
-      this.faceDrawer.uniforms.ambientColor.value = [0.4, 0.4, 0.4, 1.0];
+      this.diffuseColor = [0.9, 0.9, 0.9, 1.0];
+      this.ambientColor = [0.4, 0.4, 0.4, 1.0];
     },
 
-    addObjType: function(objType) {
+    addObjType: function(objType, count) {
+      count = count || 1;
       var self = this;
       var instanceStride = this.faceDrawer.instanceStride / 4;
 
       if (!this.objTypes.contains(objType)) {
-        var instanceData = this.instanceData[objType] = Array.range(this.count).map(function(i) {
+        this.counts[objType] = count;
+        var instanceData = this.instanceData[objType] = Array.range(count).map(function(i) {
           return [
             // visible
             0,
@@ -992,10 +1110,10 @@ phina.namespace(function() {
         this.ibos[objType] = phina.asset.AssetManager.get("ibo", objType + ".obj");
         this.vbos[objType] = phina.asset.AssetManager.get("vbo", objType + ".obj");
         this.textures[objType] = phina.asset.AssetManager.get("texture", objType + ".png");
-        this.pools[objType] = Array.range(this.count).map(function(id) {
-          return glb.Obj(id, instanceData, instanceStride)
+        this.pools[objType] = Array.range(count).map(function(id) {
+          return glb.Obj(id, instanceData, instanceStride, objType)
             .on("removed", function() {
-              self.pools[objType].push(this);
+              self.pools[this.objType].push(this);
             });
         });
 
@@ -1008,15 +1126,8 @@ phina.namespace(function() {
     },
 
     update: function(app) {
-      // var f = app.ticker.frame * 0.01;
-      // this.lightDirection = vec3.set(this.lightDirection, Math.cos(f) * 2, -0.25, Math.sin(f) * 2);
-      // vec3.normalize(this.lightDirection, this.lightDirection);
-      // this.uniforms.lightDirection.value = this.lightDirection;
-
-      // this.objTypes.forEach(function(objType) {
-      //   var instanceData = self.instanceData[objType];
-      //   self.faceDrawer.setInstanceAttributeData(instanceData);
-      // });
+      mat4.mul(this.vpMatrix, this.pMatrix, this.vMatrix);
+      vec3.normalize(this.lightDirection, this.lightDirection);
     },
 
     render: function() {
@@ -1026,20 +1137,53 @@ phina.namespace(function() {
       gl.enable(gl.DEPTH_TEST);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
+      this.faceDrawer.uniforms.vpMatrix.value = this.vpMatrix;
+      this.faceDrawer.uniforms.cameraPosition.value = this.cameraPosition;
+      this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
+      this.faceDrawer.uniforms.diffuseColor.value = this.diffuseColor;
+      this.faceDrawer.uniforms.ambientColor.value = this.ambientColor;
+
       this.objTypes.forEach(function(objType) {
+        var count = self.counts[objType];
         var instanceData = self.instanceData[objType];
         var ibo = self.ibos[objType];
         var vbo = self.vbos[objType];
         var texture = self.textures[objType];
-        
+
         self.faceDrawer
-          .setIbo(ibo)
+          .setIndexBuffer(ibo)
           .setAttributeVbo(vbo)
           .setInstanceAttributeData(instanceData);
         self.faceDrawer.uniforms.texture.setValue(0).setTexture(texture);
-        self.faceDrawer.draw(self.count);
+        self.faceDrawer.draw(count);
       });
     },
+
+    renderGlow: function() {
+      var self = this;
+      var gl = this.gl;
+      gl.enable(gl.BLEND);
+      gl.enable(gl.DEPTH_TEST);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+      this.glowDrawer.uniforms.vpMatrix.value = this.vpMatrix;
+
+      this.objTypes.forEach(function(objType) {
+        var count = self.counts[objType];
+        var instanceData = self.instanceData[objType];
+        var ibo = self.ibos[objType];
+        var vbo = self.vbos[objType];
+        var texture = self.textures[objType];
+
+        self.glowDrawer
+          .setIndexBuffer(ibo)
+          .setAttributeVbo(vbo)
+          .setInstanceAttributeData(instanceData);
+        self.glowDrawer.uniforms.texture.setValue(0).setTexture(texture);
+        self.glowDrawer.draw(count);
+      });
+    },
+
   });
 
 });
@@ -1081,7 +1225,7 @@ phina.namespace(function() {
 
       this.faceDrawer
         .setProgram(phina.asset.AssetManager.get("shader", "terrain"))
-        .setIbo(phina.asset.AssetManager.get("ibo", "hex.obj"))
+        .setIndexBuffer(phina.asset.AssetManager.get("ibo", "hex.obj"))
         .setAttributes("position", "uv", "normal")
         .setAttributeVbo(phina.asset.AssetManager.get("vbo", "hex.obj"))
         .setInstanceAttributes(
@@ -1102,7 +1246,7 @@ phina.namespace(function() {
       this.edgeDrawer
         .setDrawMode(gl.LINES)
         .setProgram(phina.asset.AssetManager.get("shader", "terrainEdge"))
-        .setIbo(phina.asset.AssetManager.get("edgesIbo", "hex.obj"))
+        .setIndexBuffer(phina.asset.AssetManager.get("edgesIbo", "hex.obj"))
         .setAttributes("position")
         .setAttributeVbo(phina.asset.AssetManager.get("edgesVbo", "hex.obj"))
         .setInstanceAttributes(
@@ -1151,15 +1295,12 @@ phina.namespace(function() {
             else if (countZ * unit * 1 / Math.sqrt(3) * 1.5 < this.z) this.z -= countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
           })
           .on("removed", function() {
-            instanceData[this.index + 0] = 0;
             self.pool.push(this);
           });
       });
 
       this.faceDrawer.setInstanceAttributeData(this.instanceData);
       this.edgeDrawer.setInstanceAttributeData(this.instanceData);
-
-      // console.log(this);
     },
 
     update: function(app) {

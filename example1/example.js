@@ -29,6 +29,7 @@ phina.namespace(function() {
                     "enemyS1.obj": "../asset/enemyS1.obj",
                     "enemyS2.obj": "../asset/enemyS2.obj",
                     "enemyS3.obj": "../asset/enemyS3.obj",
+                    "enemyS4.obj": "../asset/enemyS4.obj",
                     // "p64.obj": "../asset/p64.obj",
                   },
                   image: {
@@ -36,6 +37,7 @@ phina.namespace(function() {
                     "enemyS1.png": "../asset/enemyS1.png",
                     "enemyS2.png": "../asset/enemyS2.png",
                     "enemyS3.png": "../asset/enemyS3.png",
+                    "enemyS4.png": "../asset/enemyS4.png",
                     // "p64.png": "../asset/p64.png",
                   },
                   vertexShader: {
@@ -45,6 +47,9 @@ phina.namespace(function() {
                     "terrainEdge.vs": "../asset/terrainEdge.vs",
                     "obj.vs": "../asset/obj.vs",
                     "objEdge.vs": "../asset/objEdge.vs",
+                    "objGlow.vs": "../asset/objGlow.vs",
+                    "effect_copy.vs": "../asset/effect_copy.vs",
+                    "effect_blur.vs": "../asset/effect_blur.vs",
                   },
                   fragmentShader: {
                     "bulletSprites.fs": "../asset/bulletSprites.fs",
@@ -53,6 +58,9 @@ phina.namespace(function() {
                     "terrainEdge.fs": "../asset/terrainEdge.fs",
                     "obj.fs": "../asset/obj.fs",
                     "objEdge.fs": "../asset/objEdge.fs",
+                    "objGlow.fs": "../asset/objGlow.fs",
+                    "effect_copy.fs": "../asset/effect_copy.fs",
+                    "effect_blur.fs": "../asset/effect_blur.fs",
                   },
                 },
               },
@@ -77,8 +85,8 @@ phina.namespace(function() {
     init: function() {
       var self = this;
       this.superInit({
-        width: 720,
-        height: 1280,
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
       });
       this.fromJSON({
         children: {
@@ -104,7 +112,7 @@ phina.namespace(function() {
       var config = {
         target: { x: this.width / 2, y: this.height * 0.9 },
         createNewBullet: function(runner, option) {
-          var b = glLayer.getBullet();
+          var b = glLayer.bulletSprites.get();
           if (b) b.spawn(runner, option).addChildTo(glLayer);
         },
       };
@@ -121,18 +129,18 @@ phina.namespace(function() {
         ]);
       };
       var pattern = new bulletml.Root({
-        top0: _.action([
-          _.repeat(Infinity, [
-            _.repeat(5, [
-              _.fire(_.bullet(_.direction(10, "sequance"), _.action([_.wait(1), _.vanish()]))),
-              _.wait(2),
-              _.repeat(w, [
-                _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(20), { type: 1 })),
-              ]),
-            ]),
-            _.wait(90),
-          ]),
-        ]),
+        // top0: _.action([
+        //   _.repeat(Infinity, [
+        //     _.repeat(5, [
+        //       _.fire(_.bullet(_.direction(10, "sequance"), _.action([_.wait(1), _.vanish()]))),
+        //       _.wait(2),
+        //       _.repeat(w, [
+        //         _.fire(_.direction(360 / w, "sequance"), _.bullet(speed(20), { type: 1 })),
+        //       ]),
+        //     ]),
+        //     _.wait(90),
+        //   ]),
+        // ]),
         // top1: _.action([
         //   _.repeat(Infinity, [
         //     _.fire(_.bullet(_.direction(-4, "sequance"), _.action([_.wait(1), _.vanish()]))),
@@ -162,39 +170,52 @@ phina.namespace(function() {
         // ]),
       });
 
-      var runner = pattern.createRunner(config);
+      glLayer.enemyDrawer.addObjType("enemyS4", 200);
 
-      glLayer.enemyDrawer.addObjType("enemyS1");
-      glLayer.enemyDrawer.addObjType("enemyS3");
+      this.on("enterframe", function(e) {
+        if (e.app.ticker.frame % 5 !== 0) return;
 
-      var enemy = glLayer.enemyDrawer.get("enemyS1");
-      if (enemy) {
-        enemy
-          .spawn({
-            x: this.width * 0.4,
-            y: this.height * 0.2,
-            z: 0,
-            rotX: 0,
-            rotY: 0,
-            rotZ: 0,
-            scaleX: OBJ_SCALE,
-            scaleY: OBJ_SCALE,
-            scaleZ: OBJ_SCALE,
-          })
-          .on("enterframe", function(e) {
-            this.rotateZ(0.1);
+        var d = Math.randfloat(150, 30).toRadian();
+        var dd = Math.randfloat(-0.2, 0.2);
 
-            // this.x = self.width / 2 + Math.sin(e.app.ticker.frame * 0.1) * self.width * 0.4;
-            runner.x = this.x;
-            runner.y = this.y;
-            runner.update();
-          })
-          .addChildTo(glLayer);
-      }
+        var enemy = glLayer.enemyDrawer.get("enemyS4");
+        if (enemy) {
+          var runner = pattern.createRunner(config);
+          enemy
+            .spawn({
+              x: this.width * Math.random(),
+              y: this.height * Math.random(),
+              z: 0,
+              rotX: 0,
+              rotY: 0,
+              rotZ: d,
+              scaleX: OBJ_SCALE * 1.5,
+              scaleY: OBJ_SCALE * 1.5,
+              scaleZ: OBJ_SCALE * 1.5,
+            })
+            .clearEventListener("enterframe")
+            .on("enterframe", function(e) {
+              this.x += Math.cos(d) * 8;
+              this.y += Math.sin(d) * 8;
+              // this.rotateZ(dd);
+              
+              d += dd;
+
+              if (SCREEN_HEIGHT + 100 < this.y) {
+                this.remove();
+              }
+
+              // this.x = self.width / 2 + Math.sin(e.app.ticker.frame * 0.1) * self.width * 0.4;
+              runner.x = this.x;
+              runner.y = this.y;
+              runner.update();
+            })
+            .addChildTo(glLayer);
+        }
+      });
     },
 
     update: function(app) {
-      // return;
       var self = this;
       var glLayer = this.glLayer;
       var f = app.ticker.frame;
@@ -204,7 +225,7 @@ phina.namespace(function() {
         (15).times(function() {
           var a = Math.randfloat(0, Math.PI * 2);
           var r = Math.randfloat(10, 50);
-          var e = glLayer.getEffect();
+          var e = glLayer.effectSprites.get();
           if (!e) return;
           e
             .spawn({
@@ -231,7 +252,7 @@ phina.namespace(function() {
         (5).times(function() {
           var a = Math.randfloat(0, Math.PI * 2);
           var r = Math.randfloat(80, 150);
-          var e = glLayer.getEffect();
+          var e = glLayer.effectSprites.get();
           if (!e) return;
           e
             .spawn({

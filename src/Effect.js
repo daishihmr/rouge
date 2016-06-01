@@ -50,6 +50,7 @@ phina.namespace(function() {
 
       if (this.x < -100 || 640 + 100 < this.x || this.y < -100 || 960 + 100 < this.y) {
         this.remove();
+        return;
       }
 
       instanceData[index + 1] = this.x;
@@ -60,6 +61,10 @@ phina.namespace(function() {
 
       this.age += 1;
     },
+
+    onremoved: function() {
+      this.instanceData[this.index + 0] = 0;
+    }
   });
 
 });

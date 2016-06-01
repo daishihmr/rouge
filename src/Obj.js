@@ -13,11 +13,12 @@ phina.namespace(function() {
 
     dirty: true,
 
-    init: function(id, instanceData, instanceStride) {
+    init: function(id, instanceData, instanceStride, objType) {
       this.superInit();
       this.id = id;
       this.instanceData = instanceData;
       this.index = id * instanceStride;
+      this.objType = objType;
 
       this.position = vec3.create();
       this.quaternion = quat.create();
