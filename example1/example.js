@@ -24,43 +24,42 @@ phina.namespace(function() {
               arguments: {
                 assets: {
                   obj: {
-                    "hex.obj": "../asset/hex.obj",
-                    "cube.obj": "../asset/cube.obj",
-                    "enemyS1.obj": "../asset/enemyS1.obj",
-                    "enemyS2.obj": "../asset/enemyS2.obj",
-                    "enemyS3.obj": "../asset/enemyS3.obj",
-                    "enemyS4.obj": "../asset/enemyS4.obj",
-                    // "p64.obj": "../asset/p64.obj",
+                    "hex.obj": "../asset/obj/hex.obj",
+                    "enemyS1.obj": "../asset/obj/enemyS1.obj",
+                    "enemyS2.obj": "../asset/obj/enemyS2.obj",
+                    "enemyS3.obj": "../asset/obj/enemyS3.obj",
+                    "enemyS4.obj": "../asset/obj/enemyS4.obj",
                   },
                   image: {
-                    "bullets.png": "../asset/bullets.png",
-                    "enemyS1.png": "../asset/enemyS1.png",
-                    "enemyS2.png": "../asset/enemyS2.png",
-                    "enemyS3.png": "../asset/enemyS3.png",
-                    "enemyS4.png": "../asset/enemyS4.png",
-                    // "p64.png": "../asset/p64.png",
+                    "bullets.png": "../asset/image/bullets.png",
+                    "enemyS1.png": "../asset/image/enemyS1.png",
+                    "enemyS2.png": "../asset/image/enemyS2.png",
+                    "enemyS3.png": "../asset/image/enemyS3.png",
+                    "enemyS4.png": "../asset/image/enemyS4.png",
                   },
                   vertexShader: {
-                    "bulletSprites.vs": "../asset/bulletSprites.vs",
-                    "effectSprites.vs": "../asset/effectSprites.vs",
-                    "terrain.vs": "../asset/terrain.vs",
-                    "terrainEdge.vs": "../asset/terrainEdge.vs",
-                    "obj.vs": "../asset/obj.vs",
-                    "objEdge.vs": "../asset/objEdge.vs",
-                    "objGlow.vs": "../asset/objGlow.vs",
-                    "effect_copy.vs": "../asset/effect_copy.vs",
-                    "effect_blur.vs": "../asset/effect_blur.vs",
+                    "bulletSprites.vs": "../asset/shader/bulletSprites.vs",
+                    "effectSprites.vs": "../asset/shader/effectSprites.vs",
+                    "terrain.vs": "../asset/shader/terrain.vs",
+                    "terrainEdge.vs": "../asset/shader/terrainEdge.vs",
+                    "obj.vs": "../asset/shader/obj.vs",
+                    "objEdge.vs": "../asset/shader/objEdge.vs",
+                    "objGlow.vs": "../asset/shader/objGlow.vs",
+                    "effect_copy.vs": "../asset/shader/effect_copy.vs",
+                    "effect_blur.vs": "../asset/shader/effect_blur.vs",
+                    "effect_zoom.vs": "../asset/shader/effect_zoom.vs",
                   },
                   fragmentShader: {
-                    "bulletSprites.fs": "../asset/bulletSprites.fs",
-                    "effectSprites.fs": "../asset/effectSprites.fs",
-                    "terrain.fs": "../asset/terrain.fs",
-                    "terrainEdge.fs": "../asset/terrainEdge.fs",
-                    "obj.fs": "../asset/obj.fs",
-                    "objEdge.fs": "../asset/objEdge.fs",
-                    "objGlow.fs": "../asset/objGlow.fs",
-                    "effect_copy.fs": "../asset/effect_copy.fs",
-                    "effect_blur.fs": "../asset/effect_blur.fs",
+                    "bulletSprites.fs": "../asset/shader/bulletSprites.fs",
+                    "effectSprites.fs": "../asset/shader/effectSprites.fs",
+                    "terrain.fs": "../asset/shader/terrain.fs",
+                    "terrainEdge.fs": "../asset/shader/terrainEdge.fs",
+                    "obj.fs": "../asset/shader/obj.fs",
+                    "objEdge.fs": "../asset/shader/objEdge.fs",
+                    "objGlow.fs": "../asset/shader/objGlow.fs",
+                    "effect_copy.fs": "../asset/shader/effect_copy.fs",
+                    "effect_blur.fs": "../asset/shader/effect_blur.fs",
+                    "effect_zoom.fs": "../asset/shader/effect_zoom.fs",
                   },
                 },
               },
@@ -90,8 +89,8 @@ phina.namespace(function() {
       });
       this.fromJSON({
         children: {
-          enemyLayer: { className: "phina.display.DisplayElement" },
           glLayer: { className: "glb.GLLayer" },
+          uiLayer: { className: "phina.display.DisplayElement" },
         },
       });
 
@@ -171,48 +170,31 @@ phina.namespace(function() {
       });
 
       glLayer.enemyDrawer.addObjType("enemyS4", 200);
+      var launchEnemy = function(x, y) {
+        glLayer.enemyDrawer.get("enemyS4")
+          .spawn({
+            x: x,
+            y: y,
+            z: 0,
+            rotX: 0,
+            rotY: 0,
+            rotZ: 0,
+            scaleX: OBJ_SCALE * 1.5,
+            scaleY: OBJ_SCALE * 1.5,
+            scaleZ: OBJ_SCALE * 1.5,
+          })
+          .addChildTo(glLayer)
+          .on("enterframe", function() { this.rotateZ(0.1) });
+      };
 
-      this.on("enterframe", function(e) {
-        if (e.app.ticker.frame % 5 !== 0) return;
-
-        var d = Math.randfloat(150, 30).toRadian();
-        var dd = Math.randfloat(-0.2, 0.2);
-
-        var enemy = glLayer.enemyDrawer.get("enemyS4");
-        if (enemy) {
-          var runner = pattern.createRunner(config);
-          enemy
-            .spawn({
-              x: this.width * Math.random(),
-              y: this.height * Math.random(),
-              z: 0,
-              rotX: 0,
-              rotY: 0,
-              rotZ: d,
-              scaleX: OBJ_SCALE * 1.5,
-              scaleY: OBJ_SCALE * 1.5,
-              scaleZ: OBJ_SCALE * 1.5,
-            })
-            .clearEventListener("enterframe")
-            .on("enterframe", function(e) {
-              this.x += Math.cos(d) * 8;
-              this.y += Math.sin(d) * 8;
-              // this.rotateZ(dd);
-              
-              d += dd;
-
-              if (SCREEN_HEIGHT + 100 < this.y) {
-                this.remove();
-              }
-
-              // this.x = self.width / 2 + Math.sin(e.app.ticker.frame * 0.1) * self.width * 0.4;
-              runner.x = this.x;
-              runner.y = this.y;
-              runner.update();
-            })
-            .addChildTo(glLayer);
-        }
-      });
+      launchEnemy(200, 200);
+      launchEnemy(SCREEN_WIDTH - 200, 200);
+      launchEnemy(SCREEN_WIDTH - 200, SCREEN_HEIGHT - 200);
+      launchEnemy(200, SCREEN_HEIGHT - 200);
+      launchEnemy(400, 400);
+      launchEnemy(SCREEN_WIDTH - 400, 400);
+      launchEnemy(SCREEN_WIDTH - 400, SCREEN_HEIGHT - 400);
+      launchEnemy(400, SCREEN_HEIGHT - 400);
     },
 
     update: function(app) {

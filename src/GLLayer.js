@@ -15,6 +15,19 @@ phina.namespace(function() {
     playerDrawer: null,
     enemyDrawer: null,
 
+    glowEffect: null,
+
+    framebufferNormal: null,
+    framebufferBlur: null,
+
+    ppZoomBlur: null,
+    ppCopy: null,
+
+    zoomCenterX: 0,
+    zoomCenterY: 0,
+    zoomStrength: 0,
+    zoomAlpha: 0,
+
     init: function() {
       this.superInit({
         width: SCREEN_WIDTH,
@@ -37,14 +50,28 @@ phina.namespace(function() {
       var extInstancedArrays = phigl.Extensions.getInstancedArrays(gl);
       var extVertexArrayObject = phigl.Extensions.getVertexArrayObject(gl);
 
-      this.terrain = glb.Terrain(gl, extInstancedArrays, this.width, this.height);
-      this.itemDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
-      this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, this.width, this.height);
-      this.enemyDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
-      this.playerDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
-      this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, this.width, this.height);
-      
-      this.glowEffect = glb.GlowEffect(gl, this.domElement.width, this.domElement.height);
+      var cw = this.domElement.width;
+      var ch = this.domElement.height;
+      var w = this.width;
+      var h = this.height;
+      var sw = Math.pow(2, ~~Math.log2(cw) + 1);
+      var sh = Math.pow(2, ~~Math.log2(ch) + 1);
+      var q = glb.GLLayer.quality;
+
+      this.terrain = glb.Terrain(gl, extInstancedArrays, w, h);
+      this.itemDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
+      this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, w, h);
+      this.enemyDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
+      this.playerDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
+      this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, w, h);
+
+      this.glowEffect = glb.GlowEffect(gl, cw, ch);
+
+      this.framebufferNormal = phigl.Framebuffer(gl, sw, sh);
+      this.framebufferBlur = phigl.Framebuffer(gl, sw, sh);
+
+      this.ppZoomBlur = glb.PostProcessing(gl, cw, ch, "effect_zoom", ["canvasSize", "center", "strength"]);
+      this.ppCopy = glb.PostProcessing(gl, cw, ch, "effect_copy", ["alpha"]);
 
       this.setupTerrain();
     },
@@ -92,36 +119,77 @@ phina.namespace(function() {
       this.enemyDrawer.update(app);
       this.playerDrawer.update(app);
       this.bulletSprites.update(app);
+      
+      if (app.ticker.frame % 100 === 0) {
+        this.startZoom(Math.random() * SCREEN_WIDTH, Math.random() * SCREEN_HEIGHT);
+      }
     },
 
     draw: function(canvas) {
       if (!this.ready) return;
 
       var gl = this.gl;
+      var image = this.domElement;
+      var cw = image.width;
+      var ch = image.height;
 
-      this.glowEffect.bindCurrent(0, 0, this.domElement.width, this.domElement.height);
+      this.glowEffect.bindCurrent();
+      gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.playerDrawer.renderGlow();
       this.enemyDrawer.renderGlow();
       this.glowEffect.renderBefore();
       gl.flush();
 
-      phigl.Framebuffer.unbind(gl);
-      gl.viewport(0, 0, this.domElement.width, this.domElement.height);
+      this.framebufferNormal.bind();
+      gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.terrain.render();
       this.itemDrawer.render();
-      // this.effectSprites.render();
+      this.effectSprites.render();
       this.enemyDrawer.render();
       this.playerDrawer.render();
       this.glowEffect.renderCurrent();
       this.bulletSprites.render();
       gl.flush();
 
-      var image = this.domElement;
-      canvas.context.drawImage(image, 0, 0, image.width, image.height, -this.width * this.originX, -this.height * this.originY, this.width, this.height);
+      this.framebufferBlur.bind();
+      gl.viewport(0, 0, cw, ch);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      this.ppZoomBlur.render(this.framebufferNormal.texture, {
+        center: this.ppZoomBlur.viewCoordToShaderCoord(this.zoomCenterX, this.zoomCenterY),
+        strength: this.zoomStrength,
+      });
+      gl.flush();
+
+      phigl.Framebuffer.unbind(gl);
+      gl.viewport(0, 0, cw, ch);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      this.ppCopy.render(this.framebufferNormal.texture, {
+        alpha: 1.0 - this.zoomAlpha,
+      });
+      this.ppCopy.render(this.framebufferBlur.texture, {
+        alpha: this.zoomAlpha,
+      });
+      gl.flush();
+
+      canvas.context.drawImage(image, 0, 0, cw, ch, -this.width * this.originX, -this.height * this.originY, this.width, this.height);
 
       this.glowEffect.switchFramebuffer();
+    },
+
+    startZoom: function(x, y) {
+      this.zoomCenterX = x;
+      this.zoomCenterY = y;
+      this.tweener.clear()
+        .set({
+          zoomStrength: 0,
+          zoomAlpha: 1.0,
+        })
+        .to({
+          zoomStrength: 30,
+          zoomAlpha: 0,
+        }, 40, "easeOutQuad");
     },
 
     _static: {

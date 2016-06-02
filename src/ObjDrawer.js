@@ -63,7 +63,7 @@ phina.namespace(function() {
           "texture"
         );
 
-      this.cameraPosition = vec3.set(vec3.create(), w / 2, h * 0.75, w * 1.5);
+      this.cameraPosition = vec3.set(vec3.create(), w / 2, h * 0.5, w * 1.5);
       this.vMatrix = mat4.lookAt(mat4.create(), this.cameraPosition, [w / 2, h / 2, 0], [0, 1, 0]);
       this.pMatrix = mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000);
       this.vpMatrix = mat4.create();
@@ -84,13 +84,13 @@ phina.namespace(function() {
             // visible
             0,
             // m0
-            1, 0, 0, 0,
+            1, 0, 0,
             // m1
-            0, 1, 0, 0,
+            0, 1, 0,
             // m2
-            0, 0, 1, 0,
+            0, 0, 1,
             // m3
-            0, 0, 0, 1
+            0, 0, 0,
           ];
         }).flatten();
         this.ibos[objType] = phina.asset.AssetManager.get("ibo", objType + ".obj");

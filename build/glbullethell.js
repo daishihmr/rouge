@@ -134,7 +134,7 @@ phina.namespace(function() {
       var instanceUnit = this.instanceStride / 4;
 
       this.uniforms.vMatrix.setValue(
-        mat4.lookAt(mat4.create(), [w / 2, h * 0.75, w * 1.5], [w / 2, h / 2, 0], [0, 1, 0])
+        mat4.lookAt(mat4.create(), [w / 2, h * 0.5, w * 1.5], [w / 2, h / 2, 0], [0, 1, 0])
       );
       this.uniforms.pMatrix.setValue(
         mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000)
@@ -337,7 +337,7 @@ phina.namespace(function() {
       var instanceStride = this.instanceStride / 4;
 
       this.uniforms.vMatrix.setValue(
-        mat4.lookAt(mat4.create(), [w / 2, h * 0.75, w * 1.5], [w / 2, h / 2, 0], [0, 1, 0])
+        mat4.lookAt(mat4.create(), [w / 2, h * 0.5, w * 1.5], [w / 2, h / 2, 0], [0, 1, 0])
       );
       this.uniforms.pMatrix.setValue(
         mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000)
@@ -424,6 +424,19 @@ phina.namespace(function() {
     playerDrawer: null,
     enemyDrawer: null,
 
+    glowEffect: null,
+
+    framebufferNormal: null,
+    framebufferBlur: null,
+
+    ppZoomBlur: null,
+    ppCopy: null,
+
+    zoomCenterX: 0,
+    zoomCenterY: 0,
+    zoomStrength: 0,
+    zoomAlpha: 0,
+
     init: function() {
       this.superInit({
         width: SCREEN_WIDTH,
@@ -446,14 +459,28 @@ phina.namespace(function() {
       var extInstancedArrays = phigl.Extensions.getInstancedArrays(gl);
       var extVertexArrayObject = phigl.Extensions.getVertexArrayObject(gl);
 
-      this.terrain = glb.Terrain(gl, extInstancedArrays, this.width, this.height);
-      this.itemDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
-      this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, this.width, this.height);
-      this.enemyDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
-      this.playerDrawer = glb.ObjDrawer(gl, extInstancedArrays, this.width, this.height);
-      this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, this.width, this.height);
-      
-      this.glowEffect = glb.GlowEffect(gl, this.domElement.width, this.domElement.height);
+      var cw = this.domElement.width;
+      var ch = this.domElement.height;
+      var w = this.width;
+      var h = this.height;
+      var sw = Math.pow(2, ~~Math.log2(cw) + 1);
+      var sh = Math.pow(2, ~~Math.log2(ch) + 1);
+      var q = glb.GLLayer.quality;
+
+      this.terrain = glb.Terrain(gl, extInstancedArrays, w, h);
+      this.itemDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
+      this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, w, h);
+      this.enemyDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
+      this.playerDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
+      this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, w, h);
+
+      this.glowEffect = glb.GlowEffect(gl, cw, ch);
+
+      this.framebufferNormal = phigl.Framebuffer(gl, sw, sh);
+      this.framebufferBlur = phigl.Framebuffer(gl, sw, sh);
+
+      this.ppZoomBlur = glb.PostProcessing(gl, cw, ch, "effect_zoom", ["canvasSize", "center", "strength"]);
+      this.ppCopy = glb.PostProcessing(gl, cw, ch, "effect_copy", ["alpha"]);
 
       this.setupTerrain();
     },
@@ -501,36 +528,77 @@ phina.namespace(function() {
       this.enemyDrawer.update(app);
       this.playerDrawer.update(app);
       this.bulletSprites.update(app);
+      
+      if (app.ticker.frame % 100 === 0) {
+        this.startZoom(Math.random() * SCREEN_WIDTH, Math.random() * SCREEN_HEIGHT);
+      }
     },
 
     draw: function(canvas) {
       if (!this.ready) return;
 
       var gl = this.gl;
+      var image = this.domElement;
+      var cw = image.width;
+      var ch = image.height;
 
-      this.glowEffect.bindCurrent(0, 0, this.domElement.width, this.domElement.height);
+      this.glowEffect.bindCurrent();
+      gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.playerDrawer.renderGlow();
       this.enemyDrawer.renderGlow();
       this.glowEffect.renderBefore();
       gl.flush();
 
-      phigl.Framebuffer.unbind(gl);
-      gl.viewport(0, 0, this.domElement.width, this.domElement.height);
+      this.framebufferNormal.bind();
+      gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.terrain.render();
       this.itemDrawer.render();
-      // this.effectSprites.render();
+      this.effectSprites.render();
       this.enemyDrawer.render();
       this.playerDrawer.render();
       this.glowEffect.renderCurrent();
       this.bulletSprites.render();
       gl.flush();
 
-      var image = this.domElement;
-      canvas.context.drawImage(image, 0, 0, image.width, image.height, -this.width * this.originX, -this.height * this.originY, this.width, this.height);
+      this.framebufferBlur.bind();
+      gl.viewport(0, 0, cw, ch);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      this.ppZoomBlur.render(this.framebufferNormal.texture, {
+        center: this.ppZoomBlur.viewCoordToShaderCoord(this.zoomCenterX, this.zoomCenterY),
+        strength: this.zoomStrength,
+      });
+      gl.flush();
+
+      phigl.Framebuffer.unbind(gl);
+      gl.viewport(0, 0, cw, ch);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      this.ppCopy.render(this.framebufferNormal.texture, {
+        alpha: 1.0 - this.zoomAlpha,
+      });
+      this.ppCopy.render(this.framebufferBlur.texture, {
+        alpha: this.zoomAlpha,
+      });
+      gl.flush();
+
+      canvas.context.drawImage(image, 0, 0, cw, ch, -this.width * this.originX, -this.height * this.originY, this.width, this.height);
 
       this.glowEffect.switchFramebuffer();
+    },
+
+    startZoom: function(x, y) {
+      this.zoomCenterX = x;
+      this.zoomCenterY = y;
+      this.tweener.clear()
+        .set({
+          zoomStrength: 0,
+          zoomAlpha: 1.0,
+        })
+        .to({
+          zoomStrength: 30,
+          zoomAlpha: 0,
+        }, 40, "easeOutQuad");
     },
 
     _static: {
@@ -555,10 +623,11 @@ phina.namespace(function() {
     init: function(gl, w, h) {
       this.gl = gl;
       
-      var s = Math.max(Math.pow(2, ~~Math.log2(w) + 1), Math.pow(2, ~~Math.log2(h) + 1));
+      var sw = Math.pow(2, ~~Math.log2(w) + 1);
+      var sh = Math.pow(2, ~~Math.log2(h) + 1);
 
-      this.current = phigl.Framebuffer(gl, s, s);
-      this.before = phigl.Framebuffer(gl, s, s);
+      this.current = phigl.Framebuffer(gl, sw, sh);
+      this.before = phigl.Framebuffer(gl, sw, sh);
 
       this.drawer = phigl.Drawable(gl)
         .setDrawMode(gl.TRIANGLE_STRIP)
@@ -567,13 +636,13 @@ phina.namespace(function() {
         .setAttributes("position", "uv")
         .setAttributeData([
           //
-          -1, +1, 0, h / this.current.height,
+          -1, +1, 0, h / sh,
           //
-          +1, +1, w / this.current.width, h / this.current.height,
+          +1, +1, w / sw, h / sh,
           //
           -1, -1, 0, 0,
           // 
-          +1, -1, w / this.current.width, 0,
+          +1, -1, w / sw, 0,
         ])
         .setUniforms("texture", "alpha", "canvasSize");
 
@@ -584,13 +653,13 @@ phina.namespace(function() {
         .setAttributes("position", "uv")
         .setAttributeData([
           //
-          -1, +1, 0, h / this.current.height,
+          -1, +1, 0, h / sh,
           //
-          +1, +1, w / this.current.width, h / this.current.height,
+          +1, +1, w / sw, h / sh,
           //
           -1, -1, 0, 0,
           // 
-          +1, -1, w / this.current.width, 0,
+          +1, -1, w / sw, 0,
         ])
         .setUniforms("texture", "alpha");
 
@@ -598,8 +667,8 @@ phina.namespace(function() {
       this.height = h;
     },
 
-    bindCurrent: function(viewportX, viewportY, viewportW, viewportH) {
-      this.current.bind(viewportX, viewportY, viewportW, viewportH);
+    bindCurrent: function() {
+      this.current.bind();
     },
 
     renderCurrent: function() {
@@ -609,7 +678,7 @@ phina.namespace(function() {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
       this.drawer.uniforms.texture.setValue(0).setTexture(this.current.texture);
-      this.drawer.uniforms.alpha.value = 1.0;
+      this.drawer.uniforms.alpha.value = 0.2;
       this.drawer.uniforms.canvasSize.value = this.current.width;
       this.drawer.draw();
 
@@ -623,7 +692,7 @@ phina.namespace(function() {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
       this.copyDrawer.uniforms.texture.setValue(0).setTexture(this.before.texture);
-      this.copyDrawer.uniforms.alpha.value = 0.95;
+      this.copyDrawer.uniforms.alpha.value = 0.99;
       this.copyDrawer.draw();
 
       return this;
@@ -818,9 +887,18 @@ phina.namespace(function() {
 
       if (this.dirty) {
         mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale);
-        for (var i = 0; i < 16; i++) {
-          instanceData[index + i + 1] = this.matrix[i];
-        }
+        instanceData[index + 1] = this.matrix[0];
+        instanceData[index + 2] = this.matrix[1];
+        instanceData[index + 3] = this.matrix[2];
+        instanceData[index + 4] = this.matrix[4];
+        instanceData[index + 5] = this.matrix[5];
+        instanceData[index + 6] = this.matrix[6];
+        instanceData[index + 7] = this.matrix[8];
+        instanceData[index + 8] = this.matrix[9];
+        instanceData[index + 9] = this.matrix[10];
+        instanceData[index + 10] = this.matrix[12];
+        instanceData[index + 11] = this.matrix[13];
+        instanceData[index + 12] = this.matrix[14];
         this.dirty = false;
       }
 
@@ -1077,7 +1155,7 @@ phina.namespace(function() {
           "texture"
         );
 
-      this.cameraPosition = vec3.set(vec3.create(), w / 2, h * 0.75, w * 1.5);
+      this.cameraPosition = vec3.set(vec3.create(), w / 2, h * 0.5, w * 1.5);
       this.vMatrix = mat4.lookAt(mat4.create(), this.cameraPosition, [w / 2, h / 2, 0], [0, 1, 0]);
       this.pMatrix = mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000);
       this.vpMatrix = mat4.create();
@@ -1098,13 +1176,13 @@ phina.namespace(function() {
             // visible
             0,
             // m0
-            1, 0, 0, 0,
+            1, 0, 0,
             // m1
-            0, 1, 0, 0,
+            0, 1, 0,
             // m2
-            0, 0, 1, 0,
+            0, 0, 1,
             // m3
-            0, 0, 0, 1
+            0, 0, 0,
           ];
         }).flatten();
         this.ibos[objType] = phina.asset.AssetManager.get("ibo", objType + ".obj");
@@ -1190,6 +1268,76 @@ phina.namespace(function() {
 
 phina.namespace(function() {
 
+  phina.define("glb.PostProcessing", {
+
+    gl: null,
+    drawer: null,
+
+    width: 0,
+    height: 0,
+
+    init: function(gl, w, h, shaderName, uniforms) {
+      this.gl = gl;
+
+      var sw = Math.pow(2, ~~Math.log2(w) + 1);
+      var sh = Math.pow(2, ~~Math.log2(h) + 1);
+
+      this.drawer = phigl.Drawable(gl)
+        .setDrawMode(gl.TRIANGLE_STRIP)
+        .setProgram(phina.asset.AssetManager.get("shader", shaderName))
+        .setIndexValues([0, 1, 2, 3])
+        .setAttributes("position", "uv")
+        .setAttributeData([
+          //
+          -1, +1, 0, h / sh,
+          //
+          +1, +1, w / sw, h / sh,
+          //
+          -1, -1, 0, 0,
+          // 
+          +1, -1, w / sw, 0,
+        ])
+        .setUniforms(["texture", "canvasSize"].concat(uniforms));
+
+      this.width = w;
+      this.height = h;
+      this.sw = sw;
+      this.sh = sh;
+    },
+
+    render: function(texture, uniformValues) {
+      var gl = this.gl;
+
+      gl.enable(gl.BLEND);
+      gl.disable(gl.DEPTH_TEST);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+
+      this.drawer.uniforms.texture.setValue(0).setTexture(texture);
+      this.drawer.uniforms.canvasSize.value = [this.sw, this.sh];
+      this.setUniforms(uniformValues);
+      this.drawer.draw();
+
+      return this;
+    },
+
+    setUniforms: function(uniformValues) {
+      var uniforms = this.drawer.uniforms;
+      uniformValues.forIn(function(k, v) {
+        uniforms[k].value = v;
+      });
+    },
+    
+    viewCoordToShaderCoord: function(x, y) {
+      var q = glb.GLLayer.quality;
+      return [x * q / this.sw, (SCREEN_HEIGHT - y * q) / this.sh];
+    },
+
+  });
+
+});
+
+phina.namespace(function() {
+
   phina.define("glb.Terrain", {
 
     gl: null,
@@ -1213,13 +1361,13 @@ phina.namespace(function() {
           // visible
           0,
           // m0
-          1, 0, 0, 0,
+          1, 0, 0,
           // m1
-          0, 1, 0, 0,
+          0, 1, 0,
           // m2
-          0, 0, 1, 0,
+          0, 0, 1,
           // m3
-          0, 0, 0, 1
+          0, 0, 0
         );
       }
 

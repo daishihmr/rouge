@@ -3,10 +3,10 @@ attribute vec2 uv;
 attribute vec3 normal;
 
 attribute float instanceVisible;
-attribute vec4 instanceMatrix0;
-attribute vec4 instanceMatrix1;
-attribute vec4 instanceMatrix2;
-attribute vec4 instanceMatrix3;
+attribute vec3 instanceMatrix0;
+attribute vec3 instanceMatrix1;
+attribute vec3 instanceMatrix2;
+attribute vec3 instanceMatrix3;
 
 uniform mat4 vpMatrix;
 uniform vec3 lightDirection;
@@ -16,10 +16,6 @@ uniform vec3 cameraPosition;
 
 varying vec2 vUv;
 varying vec4 vColor;
-varying float vFog;
-
-const float fogStart = 15.0;
-const float fogEnd = 40.0;
 
 // https://github.com/stackgl/glsl-inverse
 mat4 inverse(mat4 m) {
@@ -63,48 +59,6 @@ mat4 inverse(mat4 m) {
       a20 * b03 - a21 * b01 + a22 * b00) / det;
 }
 
-mat4 rotX(float a) {
-  float c = cos(a);
-  float s = sin(a);
-  return mat4(
-    1.0, 0.0, 0.0, 0.0,
-    0.0,   c,   s, 0.0,
-    0.0,  -s,   c, 0.0,
-    0.0, 0.0, 0.0, 1.0
-  );
-}
-
-mat4 rotY(float a) {
-  float c = cos(a);
-  float s = sin(a);
-  return mat4(
-      c, 0.0,  -s, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-      s, 0.0,   c, 0.0,
-    0.0, 0.0, 0.0, 1.0
-  );
-}
-
-mat4 rotZ(float a) {
-  float c = cos(a);
-  float s = sin(a);
-  return mat4(
-      c,   s, 0.0, 0.0,
-     -s,   c, 0.0, 0.0,
-    0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 1.0
-  );
-}
-
-mat4 scale(vec3 s) {
-  return mat4(
-    s.x, 0.0, 0.0, 0.0,
-    0.0, s.y, 0.0, 0.0,
-    0.0, 0.0, s.z, 0.0,
-    0.0, 0.0, 0.0, 1.0
-  );
-}
-
 void main(void) {
   vUv = uv;
   
@@ -112,10 +66,10 @@ void main(void) {
     gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
   } else {
     mat4 mMatrix = mat4(
-      instanceMatrix0,
-      instanceMatrix1,
-      instanceMatrix2,
-      instanceMatrix3
+      vec4(instanceMatrix0, 0.0),
+      vec4(instanceMatrix1, 0.0),
+      vec4(instanceMatrix2, 0.0),
+      vec4(instanceMatrix3, 1.0)
     );
     
     mat4 mvpMatrix = vpMatrix * mMatrix;
@@ -125,12 +79,9 @@ void main(void) {
     vec3 invEye = normalize(invMatrix * vec4(cameraPosition, 0.0)).xyz;
     vec3 halfLE = normalize(invLight + invEye);
     float diffuse = clamp(dot(normal, invLight), 0.0, 1.0);
-    float specular = pow(clamp(dot(normal, halfLE), 0.0, 1.0), 30.0);
+    float specular = pow(clamp(dot(normal, halfLE), 0.0, 1.0), 20.0);
     vec4 light = diffuseColor * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 0.0);
     vColor = light + vec4(ambientColor.rgb, 0.0);
-    vec3 pos = (mMatrix * vec4(position, 1.0)).xyz;
-    float distance = length(cameraPosition - pos);
-    vFog = clamp((fogEnd - distance) / (fogEnd - fogStart), 0.0, 1.0);
     gl_Position = mvpMatrix * vec4(position, 1.0);
   }
 }

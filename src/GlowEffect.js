@@ -13,10 +13,11 @@ phina.namespace(function() {
     init: function(gl, w, h) {
       this.gl = gl;
       
-      var s = Math.max(Math.pow(2, ~~Math.log2(w) + 1), Math.pow(2, ~~Math.log2(h) + 1));
+      var sw = Math.pow(2, ~~Math.log2(w) + 1);
+      var sh = Math.pow(2, ~~Math.log2(h) + 1);
 
-      this.current = phigl.Framebuffer(gl, s, s);
-      this.before = phigl.Framebuffer(gl, s, s);
+      this.current = phigl.Framebuffer(gl, sw, sh);
+      this.before = phigl.Framebuffer(gl, sw, sh);
 
       this.drawer = phigl.Drawable(gl)
         .setDrawMode(gl.TRIANGLE_STRIP)
@@ -25,13 +26,13 @@ phina.namespace(function() {
         .setAttributes("position", "uv")
         .setAttributeData([
           //
-          -1, +1, 0, h / this.current.height,
+          -1, +1, 0, h / sh,
           //
-          +1, +1, w / this.current.width, h / this.current.height,
+          +1, +1, w / sw, h / sh,
           //
           -1, -1, 0, 0,
           // 
-          +1, -1, w / this.current.width, 0,
+          +1, -1, w / sw, 0,
         ])
         .setUniforms("texture", "alpha", "canvasSize");
 
@@ -42,13 +43,13 @@ phina.namespace(function() {
         .setAttributes("position", "uv")
         .setAttributeData([
           //
-          -1, +1, 0, h / this.current.height,
+          -1, +1, 0, h / sh,
           //
-          +1, +1, w / this.current.width, h / this.current.height,
+          +1, +1, w / sw, h / sh,
           //
           -1, -1, 0, 0,
           // 
-          +1, -1, w / this.current.width, 0,
+          +1, -1, w / sw, 0,
         ])
         .setUniforms("texture", "alpha");
 
@@ -56,8 +57,8 @@ phina.namespace(function() {
       this.height = h;
     },
 
-    bindCurrent: function(viewportX, viewportY, viewportW, viewportH) {
-      this.current.bind(viewportX, viewportY, viewportW, viewportH);
+    bindCurrent: function() {
+      this.current.bind();
     },
 
     renderCurrent: function() {
@@ -67,7 +68,7 @@ phina.namespace(function() {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
       this.drawer.uniforms.texture.setValue(0).setTexture(this.current.texture);
-      this.drawer.uniforms.alpha.value = 1.0;
+      this.drawer.uniforms.alpha.value = 0.2;
       this.drawer.uniforms.canvasSize.value = this.current.width;
       this.drawer.draw();
 
@@ -81,7 +82,7 @@ phina.namespace(function() {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
       this.copyDrawer.uniforms.texture.setValue(0).setTexture(this.before.texture);
-      this.copyDrawer.uniforms.alpha.value = 0.95;
+      this.copyDrawer.uniforms.alpha.value = 0.99;
       this.copyDrawer.draw();
 
       return this;
