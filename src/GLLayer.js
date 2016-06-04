@@ -8,19 +8,20 @@ phina.namespace(function() {
     domElement: null,
     gl: null,
 
+    orthoCamera: null,
+    perseCamera: null,
+
     terrain: null,
     itemDrawer: null,
-    effectSprites: null,
-    bulletSprites: null,
+    spriteDrawer: null,
+    bulletDrawer: null,
     playerDrawer: null,
     enemyDrawer: null,
 
-    glowEffect: null,
+    framebufferMain: null,
+    framebufferZoom: null,
 
-    framebufferNormal: null,
-    framebufferBlur: null,
-
-    ppZoomBlur: null,
+    ppZoom: null,
     ppCopy: null,
 
     zoomCenterX: 0,
@@ -41,7 +42,7 @@ phina.namespace(function() {
       this.domElement.height = this.height * glb.GLLayer.quality;
 
       this.gl = this.domElement.getContext("webgl");
-      this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
+      this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
       this.gl.clearDepth(1.0);
     },
 
@@ -58,29 +59,44 @@ phina.namespace(function() {
       var sh = Math.pow(2, ~~Math.log2(ch) + 1);
       var q = glb.GLLayer.quality;
 
-      this.terrain = glb.Terrain(gl, extInstancedArrays, w, h);
+      this.orthoCamera = glb.Camera()
+        .setPosition(w / 2, h * 0.5, w * 1.5)
+        .lookAt(w / 2, h / 2, 0)
+        .ortho(-w / 2, w / 2, h / 2, -h / 2, 0.1, 3000)
+        .calcVpMatrix();
+
+      this.perseCamera = glb.Camera()
+        .setPosition(6, 20, 20)
+        .lookAt(0, 0, 0)
+        .perspective(45, w / h, 0.1, 10000)
+        .calcVpMatrix();
+
+      this.terrain = glb.TerrainDrawer(gl, extInstancedArrays, w, h);
       this.itemDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
-      this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, w, h);
+      this.spriteDrawer = glb.SpritDrawer(gl, extInstancedArrays, w, h);
       this.enemyDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
       this.playerDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
-      this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, w, h);
+      this.bulletDrawer = glb.BulletSprites(gl, extInstancedArrays, w, h);
 
-      this.glowEffect = glb.GlowEffect(gl, cw, ch);
+      this.framebufferGlow = phigl.Framebuffer(gl, sw, sh);
+      this.framebufferGlowBlur1 = phigl.Framebuffer(gl, sw, sh);
+      this.framebufferGlowBlur2 = phigl.Framebuffer(gl, sw, sh);
+      this.framebufferMain = phigl.Framebuffer(gl, sw, sh);
+      this.framebufferZoom = phigl.Framebuffer(gl, sw, sh);
 
-      this.framebufferNormal = phigl.Framebuffer(gl, sw, sh);
-      this.framebufferBlur = phigl.Framebuffer(gl, sw, sh);
-
-      this.ppZoomBlur = glb.PostProcessing(gl, cw, ch, "effect_zoom", ["canvasSize", "center", "strength"]);
+      this.ppZoom = glb.PostProcessing(gl, cw, ch, "effect_zoom", ["canvasSize", "center", "strength"]);
       this.ppCopy = glb.PostProcessing(gl, cw, ch, "effect_copy", ["alpha"]);
+      this.ppBlur = glb.PostProcessing(gl, cw, ch, "effect_blur");
 
       this.setupTerrain();
+      this.ready = true;
     },
 
     setupTerrain: function() {
       var self = this;
-      var countX = glb.Terrain.countX;
-      var countZ = glb.Terrain.countZ;
-      var unit = glb.Terrain.unit;
+      var countX = glb.TerrainDrawer.countX;
+      var countZ = glb.TerrainDrawer.countZ;
+      var unit = glb.TerrainDrawer.unit;
       Array.range(-countX, countX).forEach(function(x) {
         Array.range(-countZ, countZ).forEach(function(z) {
           var hex = self.terrain.get();
@@ -106,8 +122,6 @@ phina.namespace(function() {
           }
         });
       });
-
-      this.ready = true;
     },
 
     update: function(app) {
@@ -115,14 +129,10 @@ phina.namespace(function() {
 
       this.terrain.update(app);
       this.itemDrawer.update(app);
-      this.effectSprites.update(app);
+      this.spriteDrawer.update(app);
       this.enemyDrawer.update(app);
       this.playerDrawer.update(app);
-      this.bulletSprites.update(app);
-      
-      if (app.ticker.frame % 100 === 0) {
-        this.startZoom(Math.random() * SCREEN_WIDTH, Math.random() * SCREEN_HEIGHT);
-      }
+      this.bulletDrawer.update(app);
     },
 
     draw: function(canvas) {
@@ -133,49 +143,67 @@ phina.namespace(function() {
       var cw = image.width;
       var ch = image.height;
 
-      this.glowEffect.bindCurrent();
+      this.framebufferGlow.bind();
       gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.playerDrawer.renderGlow();
-      this.enemyDrawer.renderGlow();
-      this.glowEffect.renderBefore();
+      this.enemyDrawer.renderGlow(this.orthoCamera.uniformValues());
+      this.playerDrawer.renderGlow(this.orthoCamera.uniformValues());
       gl.flush();
 
-      this.framebufferNormal.bind();
+      this.framebufferGlowBlur1.bind();
       gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.terrain.render();
-      this.itemDrawer.render();
-      this.effectSprites.render();
-      this.enemyDrawer.render();
-      this.playerDrawer.render();
-      this.glowEffect.renderCurrent();
-      this.bulletSprites.render();
+      this.ppCopy.render(this.framebufferGlowBlur2.texture, { alpha: 0.7 }, true);
+      for (var i = 0; i < 3; i++) {
+        this.ppBlur.render(this.framebufferGlow.texture, null, true);
+      }
       gl.flush();
 
-      this.framebufferBlur.bind();
+      this.framebufferMain.bind();
       gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.ppZoomBlur.render(this.framebufferNormal.texture, {
-        center: this.ppZoomBlur.viewCoordToShaderCoord(this.zoomCenterX, this.zoomCenterY),
-        strength: this.zoomStrength,
-      });
+      this.terrain.render({
+        diffuseColor: [0.12, 0.12, 0.12 * 2.6, 0.75],
+      }.$extend(this.perseCamera.uniformValues()));
+      this.itemDrawer.render(this.orthoCamera.uniformValues());
+      this.enemyDrawer.render({
+        diffuseColor: [1.0, 1.0, 1.0, 1.0],
+      }.$extend(this.orthoCamera.uniformValues()));
+      this.spriteDrawer.render(this.orthoCamera.uniformValues());
+      this.playerDrawer.render(this.orthoCamera.uniformValues());
+      this.ppCopy.render(this.framebufferGlowBlur1.texture, null, true);
+      this.bulletDrawer.render(this.orthoCamera.uniformValues());
       gl.flush();
+
+      if (this.zoomStrength > 0 && this.zoomAlpha > 0) {
+        this.framebufferZoom.bind();
+        gl.viewport(0, 0, cw, ch);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        this.ppZoom.render(this.framebufferMain.texture, {
+          center: this.ppZoom.viewCoordToShaderCoord(this.zoomCenterX, this.zoomCenterY),
+          strength: this.zoomStrength,
+        });
+        gl.flush();
+      }
 
       phigl.Framebuffer.unbind(gl);
       gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.ppCopy.render(this.framebufferNormal.texture, {
+      this.ppCopy.render(this.framebufferMain.texture, {
         alpha: 1.0 - this.zoomAlpha,
       });
-      this.ppCopy.render(this.framebufferBlur.texture, {
-        alpha: this.zoomAlpha,
-      });
+      if (this.zoomStrength > 0 && this.zoomAlpha > 0) {
+        this.ppCopy.render(this.framebufferZoom.texture, {
+          alpha: this.zoomAlpha,
+        }, true);
+      }
       gl.flush();
 
       canvas.context.drawImage(image, 0, 0, cw, ch, -this.width * this.originX, -this.height * this.originY, this.width, this.height);
 
-      this.glowEffect.switchFramebuffer();
+      var temp = this.framebufferGlowBlur1;
+      this.framebufferGlowBlur1 = this.framebufferGlowBlur2;
+      this.framebufferGlowBlur2 = temp;
     },
 
     startZoom: function(x, y) {
@@ -187,9 +215,9 @@ phina.namespace(function() {
           zoomAlpha: 1.0,
         })
         .to({
-          zoomStrength: 30,
+          zoomStrength: 10,
           zoomAlpha: 0,
-        }, 40, "easeOutQuad");
+        }, 20, "easeOutQuad");
     },
 
     _static: {

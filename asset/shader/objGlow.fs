@@ -17,9 +17,9 @@ vec3 rgb2hsv(vec3 c) {
 void main(void){
   vec4 color = texture2D(texture, vUv);
   vec3 hsv = rgb2hsv(color.rgb);
-  if (hsv.y > 0.8) {
+  if (hsv.y > 0.4) {
     gl_FragColor = color;
   } else {
-    gl_FragColor = vec4(0.1);
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
   }
 }

@@ -1,5 +1,8 @@
 phina.namespace(function() {
 
+  var rx = quat.setAxisAngle(quat.create(), [1, 0, 0], (30).toRadian());
+  var tq = quat.create();
+
   phina.define("glb.Obj", {
     superClass: "phina.app.Element",
 
@@ -13,12 +16,11 @@ phina.namespace(function() {
 
     dirty: true,
 
-    init: function(id, instanceData, instanceStride, objType) {
+    init: function(id, instanceData, instanceStride) {
       this.superInit();
       this.id = id;
       this.instanceData = instanceData;
       this.index = id * instanceStride;
-      this.objType = objType;
 
       this.position = vec3.create();
       this.quaternion = quat.create();
@@ -27,6 +29,18 @@ phina.namespace(function() {
     },
 
     spawn: function(options) {
+      options = {}.$extend({
+        x: 0,
+        y: 0,
+        z: 0,
+        rotX: 0,
+        rotY: 0,
+        rotZ: 0,
+        scaleX: OBJ_SCALE,
+        scaleY: OBJ_SCALE,
+        scaleZ: OBJ_SCALE,
+      }, options);
+      
       var index = this.index;
       var instanceData = this.instanceData;
       this.age = 0;
@@ -56,7 +70,13 @@ phina.namespace(function() {
       var instanceData = this.instanceData;
 
       if (this.dirty) {
-        mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale);
+        if (this.isEnemy) {
+          quat.mul(tq, rx, this.quaternion);
+          mat4.fromRotationTranslationScale(this.matrix, tq, this.position, this.scale);
+        } else {
+          mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale);
+        }
+
         instanceData[index + 1] = this.matrix[0];
         instanceData[index + 2] = this.matrix[1];
         instanceData[index + 3] = this.matrix[2];

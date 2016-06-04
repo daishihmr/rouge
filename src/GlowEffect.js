@@ -34,7 +34,7 @@ phina.namespace(function() {
           // 
           +1, -1, w / sw, 0,
         ])
-        .setUniforms("texture", "alpha", "canvasSize");
+        .setUniforms("texture", "canvasSize");
 
       this.copyDrawer = phigl.Drawable(gl)
         .setDrawMode(gl.TRIANGLE_STRIP)
@@ -68,8 +68,7 @@ phina.namespace(function() {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
       this.drawer.uniforms.texture.setValue(0).setTexture(this.current.texture);
-      this.drawer.uniforms.alpha.value = 0.2;
-      this.drawer.uniforms.canvasSize.value = this.current.width;
+      this.drawer.uniforms.canvasSize.value = [this.current.width, this.current.height];
       this.drawer.draw();
 
       return this;

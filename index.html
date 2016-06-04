@@ -1,66 +1,26 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, height=device-height, user-scalable=no, initial-scale=1, maximum-scale=1">
-</head>
-<body>
-
-<script src='https://rawgit.com/phi-jp/phina.js/develop/build/phina.min.js'></script>
-<script>
-phina.globalize();
-
-phina.main(function() {
-  GameApp({
-    width: 960,
-    height: 640,
-    backgroundColor: "black",
-    startLabel: "main",
-  }).run();
-});
-
-phina.define("MainScene", {
-  superClass: "DisplayScene",
-
-  init: function() {
-    this.superInit();
-    Enemy().setPosition(480, 320).addChildTo(this);
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, height=device-height, user-scalable=no, initial-scale=1, maximum-scale=1">
+  <style>
+  body {
+    background-color: #224;
   }
-});
+  </style>
+</head>
 
-phina.define("EnemyGroup", {
-  superClass: "DisplayElement",
-  
-  init: function() {
-    this.superInit();
-  },
-});
-
-phina.define("Enemy", {
-  superClass: "Shape",
-  
-  init: function() {
-    this.superInit({
-      width: 200,
-      height: 100,
-      padding: 0,
-      fill: "#666",
-      stroke: null,
-      backgroundColor: "transparent",
-    });
-  },
-  
-  prerender: function(canvas) {
-    var ctx = canvas.context;
-    ctx.beginPath();
-    ctx.moveTo(100, 0);
-    ctx.lineTo(0, 50);
-    ctx.lineTo(-50, 0);
-    ctx.lineTo(0, -50);
-    ctx.closePath();
-  },
-});
-</script>
-
+<body>
+  <script src="./lib/bezier-spline.js"></script>
+  <script src="./example1/gif.js"></script>
+  <script src="./lib/phina.js"></script>
+  <script src="./lib/gl-matrix.js"></script>
+  <script src="./lib/phigl.js"></script>
+  <script src="./lib/bulletml.js"></script>
+  <script src="./lib/gl-obj.js"></script>
+  <script src="./build/glbullethell.js"></script>
+  <script src="./example1/example.js"></script>
 </body>
+
 </html>

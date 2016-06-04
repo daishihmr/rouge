@@ -7,7 +7,7 @@ phina.namespace(function() {
 
     width: 0,
     height: 0,
-
+    
     init: function(gl, w, h, shaderName, uniforms) {
       this.gl = gl;
 
@@ -37,16 +37,21 @@ phina.namespace(function() {
       this.sh = sh;
     },
 
-    render: function(texture, uniformValues) {
+    render: function(texture, uniformValues, additiveBlending) {
       var gl = this.gl;
 
       gl.enable(gl.BLEND);
       gl.disable(gl.DEPTH_TEST);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      
+      if (additiveBlending) {
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      } else {
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      }
 
       this.drawer.uniforms.texture.setValue(0).setTexture(texture);
       this.drawer.uniforms.canvasSize.value = [this.sw, this.sh];
-      this.setUniforms(uniformValues);
+      if (uniformValues) this.setUniforms(uniformValues);
       this.drawer.draw();
 
       return this;
@@ -61,7 +66,7 @@ phina.namespace(function() {
     
     viewCoordToShaderCoord: function(x, y) {
       var q = glb.GLLayer.quality;
-      return [x * q / this.sw, (SCREEN_HEIGHT - y * q) / this.sh];
+      return [x * q / this.sw, (SCREEN_HEIGHT - y) * q / this.sh];
     },
 
   });

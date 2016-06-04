@@ -7,7 +7,7 @@ uniform float strength;
 
 varying vec2 vUv;
 
-const float len = 30.0;
+const float len = 10.0;
 
 // https://gist.github.com/johansten/3633917
 float random(const vec2 co) {

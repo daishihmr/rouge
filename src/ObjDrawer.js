@@ -15,8 +15,6 @@ phina.namespace(function() {
 
     faceDrawer: null,
 
-    cameraPosition: null,
-
     init: function(gl, ext, w, h) {
       this.gl = gl;
 
@@ -63,16 +61,14 @@ phina.namespace(function() {
           "texture"
         );
 
-      this.cameraPosition = vec3.set(vec3.create(), w / 2, h * 0.5, w * 1.5);
-      this.vMatrix = mat4.lookAt(mat4.create(), this.cameraPosition, [w / 2, h / 2, 0], [0, 1, 0]);
-      this.pMatrix = mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000);
-      this.vpMatrix = mat4.create();
       this.lightDirection = vec3.set(vec3.create(), -1.0, 0.0, -1.0);
-      this.diffuseColor = [0.9, 0.9, 0.9, 1.0];
+      this.diffuseColor = [1.0, 1.0, 1.0, 1.0];
       this.ambientColor = [0.4, 0.4, 0.4, 1.0];
     },
 
-    addObjType: function(objType, count) {
+    addObjType: function(objType, count, className) {
+      className = className || "glb.Obj";
+
       count = count || 1;
       var self = this;
       var instanceStride = this.faceDrawer.instanceStride / 4;
@@ -96,10 +92,12 @@ phina.namespace(function() {
         this.ibos[objType] = phina.asset.AssetManager.get("ibo", objType + ".obj");
         this.vbos[objType] = phina.asset.AssetManager.get("vbo", objType + ".obj");
         this.textures[objType] = phina.asset.AssetManager.get("texture", objType + ".png");
+
+        var ObjClass = phina.using(className);
         this.pools[objType] = Array.range(count).map(function(id) {
-          return glb.Obj(id, instanceData, instanceStride, objType)
+          return ObjClass(id, instanceData, instanceStride)
             .on("removed", function() {
-              self.pools[this.objType].push(this);
+              self.pools[objType].push(this);
             });
         });
 
@@ -112,22 +110,25 @@ phina.namespace(function() {
     },
 
     update: function(app) {
-      mat4.mul(this.vpMatrix, this.pMatrix, this.vMatrix);
       vec3.normalize(this.lightDirection, this.lightDirection);
     },
 
-    render: function() {
+    render: function(uniforms) {
       var self = this;
       var gl = this.gl;
       gl.enable(gl.BLEND);
       gl.enable(gl.DEPTH_TEST);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-      this.faceDrawer.uniforms.vpMatrix.value = this.vpMatrix;
-      this.faceDrawer.uniforms.cameraPosition.value = this.cameraPosition;
       this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
       this.faceDrawer.uniforms.diffuseColor.value = this.diffuseColor;
       this.faceDrawer.uniforms.ambientColor.value = this.ambientColor;
+
+      if (uniforms) {
+        uniforms.forIn(function(key, value) {
+          if (this.faceDrawer.uniforms[key]) this.faceDrawer.uniforms[key].value = value;
+        }.bind(this));
+      }
 
       this.objTypes.forEach(function(objType) {
         var count = self.counts[objType];
@@ -145,14 +146,18 @@ phina.namespace(function() {
       });
     },
 
-    renderGlow: function() {
+    renderGlow: function(uniforms) {
       var self = this;
       var gl = this.gl;
       gl.enable(gl.BLEND);
       gl.enable(gl.DEPTH_TEST);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-      this.glowDrawer.uniforms.vpMatrix.value = this.vpMatrix;
+      if (uniforms) {
+        uniforms.forIn(function(key, value) {
+          if (this.glowDrawer.uniforms[key]) this.glowDrawer.uniforms[key].value = value;
+        }.bind(this));
+      }
 
       this.objTypes.forEach(function(objType) {
         var count = self.counts[objType];

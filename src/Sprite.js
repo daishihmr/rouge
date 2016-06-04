@@ -1,6 +1,6 @@
 phina.namespace(function() {
 
-  phina.define("glb.Effect", {
+  phina.define("glb.Sprite", {
     superClass: "phina.app.Element",
 
     id: -1,
@@ -21,6 +21,16 @@ phina.namespace(function() {
     },
 
     spawn: function(options) {
+      options.$safe({
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scale: 1,
+        frameX: 0,
+        frameY: 0,
+        alpha: 1,
+      });
+      
       var index = this.index;
       var instanceData = this.instanceData;
 
@@ -28,6 +38,8 @@ phina.namespace(function() {
       this.y = options.y;
       this.rotation = options.rotation;
       this.scale = options.scale;
+      this.frameX = options.frameX;
+      this.frameY = options.frameY;
       this.alpha = options.alpha;
 
       instanceData[index + 0] = 1; // visible
@@ -35,8 +47,8 @@ phina.namespace(function() {
       instanceData[index + 2] = this.y; // position.y
       instanceData[index + 3] = this.rotation; // rotation
       instanceData[index + 4] = this.scale; // scale
-      instanceData[index + 5] = 0; // frame.x
-      instanceData[index + 6] = 0; // frame.y
+      instanceData[index + 5] = this.frameX; // frame.x
+      instanceData[index + 6] = this.frameY; // frame.y
       instanceData[index + 7] = this.alpha; // alpha
 
       this.age = 0;
@@ -53,11 +65,13 @@ phina.namespace(function() {
         return;
       }
 
-      instanceData[index + 1] = this.x;
-      instanceData[index + 2] = this.y;
-      instanceData[index + 3] = this.rotation;
-      instanceData[index + 4] = this.scale;
-      instanceData[index + 7] = this.alpha;
+      instanceData[index + 1] = this.x; // position.x
+      instanceData[index + 2] = this.y; // position.y
+      instanceData[index + 3] = this.rotation; // rotation
+      instanceData[index + 4] = this.scale; // scale
+      instanceData[index + 5] = this.frameX; // frame.x
+      instanceData[index + 6] = this.frameY; // frame.y
+      instanceData[index + 7] = this.alpha; // alpha
 
       this.age += 1;
     },

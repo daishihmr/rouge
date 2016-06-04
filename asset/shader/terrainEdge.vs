@@ -11,8 +11,8 @@ uniform vec3 cameraPosition;
 
 varying float vFog;
 
-const float fogStart = 20.0;
-const float fogEnd = 50.0;
+const float fogStart = 1.0;
+const float fogEnd = 40.0;
 
 void main(void) {
   if (instanceVisible < 0.5) {

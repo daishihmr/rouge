@@ -3,13 +3,14 @@ phina.namespace(function() {
     superClass: "phigl.InstancedDrawable",
 
     instanceData: null,
+
     pool: null,
-    _count: 1000,
+    _count: 2000,
 
     init: function(gl, ext, w, h) {
       this.superInit(gl, ext);
       this
-        .setProgram(phina.asset.AssetManager.get("shader", "bulletSprites"))
+        .setProgram(phina.asset.AssetManager.get("shader", "bullets"))
         .setDrawMode(gl.TRIANGLE_STRIP)
         .setIndexValues([0, 1, 2, 3])
         .setAttributes("position", "uv")
@@ -48,20 +49,13 @@ phina.namespace(function() {
           "instanceAuraColor"
         )
         .setUniforms(
-          "vMatrix",
-          "pMatrix",
+          "vpMatrix",
           "texture",
           "globalScale"
         );
 
       var instanceUnit = this.instanceStride / 4;
 
-      this.uniforms.vMatrix.setValue(
-        mat4.lookAt(mat4.create(), [w / 2, h * 0.5, w * 1.5], [w / 2, h / 2, 0], [0, 1, 0])
-      );
-      this.uniforms.pMatrix.setValue(
-        mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000)
-      );
       this.uniforms.texture.setValue(0).setTexture(phigl.Texture(gl, "bullets.png"));
       this.uniforms.globalScale.setValue(1.0);
 
@@ -104,7 +98,7 @@ phina.namespace(function() {
       this.setInstanceAttributeData(this.instanceData);
     },
 
-    render: function() {
+    render: function(uniforms) {
       var gl = this.gl;
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -112,6 +106,12 @@ phina.namespace(function() {
       gl.disable(gl.CULL_FACE);
 
       this.uniforms.globalScale.value = 1.0;
+      if (uniforms) {
+        uniforms.forIn(function(key, value) {
+          if (this.uniforms[key]) this.uniforms[key].value = value;
+        }.bind(this));
+      }
+
       this.draw(this._count);
     },
   });

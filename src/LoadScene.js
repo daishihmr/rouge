@@ -4,21 +4,39 @@ phina.namespace(function() {
     superClass: "phina.display.DisplayScene",
 
     init: function(gl) {
-      this.superInit();
+      this.superInit({
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
+        backgroundColor: "white",
+      });
       this.gl = gl;
       this.totalCount = 0;
       this.count = 0;
 
-      this.one("enter", function() {
-        this.load();
+      this.fromJSON({
+        children: {
+          label: {
+            className: "phina.display.Label",
+            arguments: "ロード中",
+            x: SCREEN_WIDTH / 2,
+            y: SCREEN_HEIGHT / 2,
+            fill: "black",
+            stroke: null,
+          },
+        }
       });
+
+      this.tweener.wait(2).call(function() {
+        this.load();
+      }.bind(this));
     },
 
     onprogress: function() {
       this.count += 1;
-      
+
       // TODO
       console.log(this.count + "/" + this.totalCount);
+      this.label.text = this.count + "/" + this.totalCount;
     },
 
     oncomplete: function() {
@@ -48,6 +66,7 @@ phina.namespace(function() {
           manager.set("shader", name, shader);
 
           self.flare("progress");
+          console.log("shader", name);
           resolve();
         });
 
@@ -70,10 +89,13 @@ phina.namespace(function() {
           manager.set("edgesIbo", key, edgesIbo);
 
           self.flare("progress");
+
+          console.log("vbo", key);
           resolve();
         });
 
         flows.push(flow);
+
       });
 
       manager.assets["image"].forIn(function(key, image) {
@@ -83,13 +105,17 @@ phina.namespace(function() {
           manager.set("texture", key, texture);
 
           self.flare("progress");
+
+          console.log("texture", key);
           resolve();
         });
 
         flows.push(flow);
+
       });
 
       phina.util.Flow.all(flows).then(function() {
+        console.log("complete");
         self.flare("complete");
       });
 

@@ -80,13 +80,14 @@ phina.namespace(function() {
     superClass: "phigl.InstancedDrawable",
 
     instanceData: null,
+
     pool: null,
-    _count: 1000,
+    _count: 2000,
 
     init: function(gl, ext, w, h) {
       this.superInit(gl, ext);
       this
-        .setProgram(phina.asset.AssetManager.get("shader", "bulletSprites"))
+        .setProgram(phina.asset.AssetManager.get("shader", "bullets"))
         .setDrawMode(gl.TRIANGLE_STRIP)
         .setIndexValues([0, 1, 2, 3])
         .setAttributes("position", "uv")
@@ -125,20 +126,13 @@ phina.namespace(function() {
           "instanceAuraColor"
         )
         .setUniforms(
-          "vMatrix",
-          "pMatrix",
+          "vpMatrix",
           "texture",
           "globalScale"
         );
 
       var instanceUnit = this.instanceStride / 4;
 
-      this.uniforms.vMatrix.setValue(
-        mat4.lookAt(mat4.create(), [w / 2, h * 0.5, w * 1.5], [w / 2, h / 2, 0], [0, 1, 0])
-      );
-      this.uniforms.pMatrix.setValue(
-        mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000)
-      );
       this.uniforms.texture.setValue(0).setTexture(phigl.Texture(gl, "bullets.png"));
       this.uniforms.globalScale.setValue(1.0);
 
@@ -181,7 +175,7 @@ phina.namespace(function() {
       this.setInstanceAttributeData(this.instanceData);
     },
 
-    render: function() {
+    render: function(uniforms) {
       var gl = this.gl;
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -189,10 +183,67 @@ phina.namespace(function() {
       gl.disable(gl.CULL_FACE);
 
       this.uniforms.globalScale.value = 1.0;
+      if (uniforms) {
+        uniforms.forIn(function(key, value) {
+          if (this.uniforms[key]) this.uniforms[key].value = value;
+        }.bind(this));
+      }
+
       this.draw(this._count);
     },
   });
 
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.Camera", {
+
+    position: null,
+    vMatrix: null,
+    pMatrix: null,
+    vpMatrix: null,
+
+    init: function() {
+      this.position = vec3.create();
+      this.vMatrix = mat4.create();
+      this.pMatrix = mat4.create();
+      this.vpMatrix = mat4.create();
+    },
+
+    setPosition: function(x, y, z) {
+      vec3.set(this.position, x, y, z);
+      return this;
+    },
+
+    lookAt: function(x, y, z) {
+      mat4.lookAt(this.vMatrix, this.position, [x, y, z], [0, 1, 0]);
+      return this;
+    },
+
+    ortho: function(left, right, bottom, top, near, far) {
+      mat4.ortho(this.pMatrix, left, right, bottom, top, near, far);
+      return this;
+    },
+
+    perspective: function(fovy, aspect, near, far) {
+      mat4.perspective(this.pMatrix, fovy, aspect, near, far);
+      return this;
+    },
+
+    calcVpMatrix: function() {
+      mat4.mul(this.vpMatrix, this.pMatrix, this.vMatrix);
+      return this;
+    },
+
+    uniformValues: function() {
+      return {
+        vpMatrix: this.vpMatrix,
+        cameraPosition: this.position,
+      };
+    }
+
+  });
 });
 
 phina.namespace(function() {
@@ -201,7 +252,11 @@ phina.namespace(function() {
     superClass: "phina.game.LoadingScene",
 
     init: function(options) {
-      this.superInit(options);
+      this.superInit(options.$extend({
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
+        backgroundColor: "white",
+      }));
     },
   });
 
@@ -209,202 +264,47 @@ phina.namespace(function() {
 
 phina.namespace(function() {
 
-  phina.define("glb.Effect", {
-    superClass: "phina.app.Element",
+  var BASE_QUAT = quat.rotateZ(quat.create(), quat.create(), (-90).toRadian());
 
-    id: -1,
-    instanceData: null,
-
-    x: 0,
-    y: 0,
-    rotation: 0,
-    scale: 0,
-
-    age: 0,
+  phina.define("glb.Fighter", {
+    superClass: "glb.Obj",
 
     init: function(id, instanceData, instanceStride) {
-      this.superInit();
-      this.id = id;
-      this.instanceData = instanceData;
-      this.index = id * instanceStride;
-    },
+      this.superInit(id, instanceData, instanceStride);
 
-    spawn: function(options) {
-      var index = this.index;
-      var instanceData = this.instanceData;
+      // this.isEnemy = true;
+      this.roll = 0;
 
-      this.x = options.x;
-      this.y = options.y;
-      this.rotation = options.rotation;
-      this.scale = options.scale;
-      this.alpha = options.alpha;
-
-      instanceData[index + 0] = 1; // visible
-      instanceData[index + 1] = this.x; // position.x
-      instanceData[index + 2] = this.y; // position.y
-      instanceData[index + 3] = this.rotation; // rotation
-      instanceData[index + 4] = this.scale; // scale
-      instanceData[index + 5] = 0; // frame.x
-      instanceData[index + 6] = 0; // frame.y
-      instanceData[index + 7] = this.alpha; // alpha
-
-      this.age = 0;
-
-      return this;
-    },
-
-    update: function(app) {
-      var index = this.index;
-      var instanceData = this.instanceData;
-
-      if (this.x < -100 || 640 + 100 < this.x || this.y < -100 || 960 + 100 < this.y) {
-        this.remove();
-        return;
-      }
-
-      instanceData[index + 1] = this.x;
-      instanceData[index + 2] = this.y;
-      instanceData[index + 3] = this.rotation;
-      instanceData[index + 4] = this.scale;
-      instanceData[index + 7] = this.alpha;
-
-      this.age += 1;
-    },
-
-    onremoved: function() {
-      this.instanceData[this.index + 0] = 0;
-    }
-  });
-
-});
-
-phina.namespace(function() {
-
-  phina.define("glb.EffectSprites", {
-    superClass: "phigl.InstancedDrawable",
-
-    instanceData: null,
-    pool: null,
-    _count: 200,
-
-    init: function(gl, ext, w, h) {
-      this.superInit(gl, ext);
-      this
-        .setProgram(phina.asset.AssetManager.get("shader", "effectSprites"))
-        .setDrawMode(gl.TRIANGLE_STRIP)
-        .setIndexValues([0, 1, 2, 3])
-        .setAttributes("position", "uv")
-        .setAttributeDataArray([{
-          unitSize: 2,
-          data: [
-            //
-            -16, +16,
-            //
-            +16, +16,
-            //
-            -16, -16,
-            //
-            +16, -16,
-          ]
-        }, {
-          unitSize: 2,
-          data: [
-            //
-            0, 32 / 256,
-            //
-            32 / 256, 32 / 256,
-            //
-            0, 0,
-            //
-            32 / 256, 0,
-          ]
-        }, ])
-        .setInstanceAttributes(
-          "instanceVisible",
-          "instancePosition",
-          "instanceRotation",
-          "instanceScale",
-          "instanceFrame",
-          "instanceAlpha"
-        )
-        .setUniforms(
-          "vMatrix",
-          "pMatrix",
-          "texture",
-          "globalScale"
-        );
-
-      var instanceStride = this.instanceStride / 4;
-
-      this.uniforms.vMatrix.setValue(
-        mat4.lookAt(mat4.create(), [w / 2, h * 0.5, w * 1.5], [w / 2, h / 2, 0], [0, 1, 0])
-      );
-      this.uniforms.pMatrix.setValue(
-        mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000)
-      );
-      this.uniforms.texture.setValue(0).setTexture(phigl.Texture(gl, this._createTexture()));
-      this.uniforms.globalScale.setValue(1.0);
-
-      var instanceData = this.instanceData = [];
-      for (var i = 0; i < this._count; i++) {
-        instanceData.push(
-          // visible
-          0,
-          // position
-          0, 0,
-          // rotation
-          0,
-          // scale
-          1,
-          // frame
-          0, 0,
-          // alpha
-          0
-        );
-      }
-      this.setInstanceAttributeData(instanceData);
-
-      var self = this;
-      this.pool = Array.range(0, this._count).map(function(id) {
-        return glb.Effect(id, instanceData, instanceStride)
-          .on("removed", function() {
-            self.pool.push(this);
-          });
+      this.on("enterframe", function(e) {
+        var app = e.app;
+        this.move(app);
       });
     },
 
-    _createTexture: function() {
-      var texture = phina.graphics.Canvas().setSize(512, 512);
-      var context = texture.context;
-      var g = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-      g.addColorStop(0.0, "rgba(255, 255, 255, 0.3)");
-      g.addColorStop(0.6, "rgba(255, 125,   0, 0.3)");
-      g.addColorStop(1.0, "rgba(255,   0,   0, 0.0)");
-      context.fillStyle = g;
-      context.fillRect(0, 0, 64, 64);
-      return texture;
+    move: function(app) {
+      var kb = app.keyboard;
+      var dir = kb.getKeyDirection();
+
+      this.x = Math.clamp(this.x + dir.x * 22, 0, SCREEN_WIDTH - 0);
+      this.y = Math.clamp(this.y + dir.y * 22, 0, SCREEN_HEIGHT - 0);
+
+      if (dir.x) {
+        this.roll = Math.clamp(this.roll - dir.x * 0.2, (-90).toRadian(), (90).toRadian());
+      } else {
+        if (this.roll < -0.2) {
+          this.roll += 0.2;
+        } else if (0.2 < this.roll) {
+          this.roll -= 0.2;
+        } else {
+          this.roll = 0;
+        }
+      }
+
+      quat.copy(this.quaternion, BASE_QUAT);
+      quat.rotateX(this.quaternion, this.quaternion, this.roll);
     },
 
-    get: function() {
-      return this.pool.shift();
-    },
-
-    update: function() {
-      this.setInstanceAttributeData(this.instanceData);
-    },
-
-    render: function() {
-      var gl = this.gl;
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-      gl.disable(gl.DEPTH_TEST);
-      gl.disable(gl.CULL_FACE);
-
-      this.uniforms.globalScale.value = 1.0;
-      this.draw(this._count);
-    },
   });
-
 });
 
 phina.namespace(function() {
@@ -417,19 +317,20 @@ phina.namespace(function() {
     domElement: null,
     gl: null,
 
+    orthoCamera: null,
+    perseCamera: null,
+
     terrain: null,
     itemDrawer: null,
-    effectSprites: null,
-    bulletSprites: null,
+    spriteDrawer: null,
+    bulletDrawer: null,
     playerDrawer: null,
     enemyDrawer: null,
 
-    glowEffect: null,
+    framebufferMain: null,
+    framebufferZoom: null,
 
-    framebufferNormal: null,
-    framebufferBlur: null,
-
-    ppZoomBlur: null,
+    ppZoom: null,
     ppCopy: null,
 
     zoomCenterX: 0,
@@ -450,7 +351,7 @@ phina.namespace(function() {
       this.domElement.height = this.height * glb.GLLayer.quality;
 
       this.gl = this.domElement.getContext("webgl");
-      this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
+      this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
       this.gl.clearDepth(1.0);
     },
 
@@ -467,29 +368,44 @@ phina.namespace(function() {
       var sh = Math.pow(2, ~~Math.log2(ch) + 1);
       var q = glb.GLLayer.quality;
 
-      this.terrain = glb.Terrain(gl, extInstancedArrays, w, h);
+      this.orthoCamera = glb.Camera()
+        .setPosition(w / 2, h * 0.5, w * 1.5)
+        .lookAt(w / 2, h / 2, 0)
+        .ortho(-w / 2, w / 2, h / 2, -h / 2, 0.1, 3000)
+        .calcVpMatrix();
+
+      this.perseCamera = glb.Camera()
+        .setPosition(6, 20, 20)
+        .lookAt(0, 0, 0)
+        .perspective(45, w / h, 0.1, 10000)
+        .calcVpMatrix();
+
+      this.terrain = glb.TerrainDrawer(gl, extInstancedArrays, w, h);
       this.itemDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
-      this.effectSprites = glb.EffectSprites(gl, extInstancedArrays, w, h);
+      this.spriteDrawer = glb.SpritDrawer(gl, extInstancedArrays, w, h);
       this.enemyDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
       this.playerDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
-      this.bulletSprites = glb.BulletSprites(gl, extInstancedArrays, w, h);
+      this.bulletDrawer = glb.BulletSprites(gl, extInstancedArrays, w, h);
 
-      this.glowEffect = glb.GlowEffect(gl, cw, ch);
+      this.framebufferGlow = phigl.Framebuffer(gl, sw, sh);
+      this.framebufferGlowBlur1 = phigl.Framebuffer(gl, sw, sh);
+      this.framebufferGlowBlur2 = phigl.Framebuffer(gl, sw, sh);
+      this.framebufferMain = phigl.Framebuffer(gl, sw, sh);
+      this.framebufferZoom = phigl.Framebuffer(gl, sw, sh);
 
-      this.framebufferNormal = phigl.Framebuffer(gl, sw, sh);
-      this.framebufferBlur = phigl.Framebuffer(gl, sw, sh);
-
-      this.ppZoomBlur = glb.PostProcessing(gl, cw, ch, "effect_zoom", ["canvasSize", "center", "strength"]);
+      this.ppZoom = glb.PostProcessing(gl, cw, ch, "effect_zoom", ["canvasSize", "center", "strength"]);
       this.ppCopy = glb.PostProcessing(gl, cw, ch, "effect_copy", ["alpha"]);
+      this.ppBlur = glb.PostProcessing(gl, cw, ch, "effect_blur");
 
       this.setupTerrain();
+      this.ready = true;
     },
 
     setupTerrain: function() {
       var self = this;
-      var countX = glb.Terrain.countX;
-      var countZ = glb.Terrain.countZ;
-      var unit = glb.Terrain.unit;
+      var countX = glb.TerrainDrawer.countX;
+      var countZ = glb.TerrainDrawer.countZ;
+      var unit = glb.TerrainDrawer.unit;
       Array.range(-countX, countX).forEach(function(x) {
         Array.range(-countZ, countZ).forEach(function(z) {
           var hex = self.terrain.get();
@@ -515,8 +431,6 @@ phina.namespace(function() {
           }
         });
       });
-
-      this.ready = true;
     },
 
     update: function(app) {
@@ -524,14 +438,10 @@ phina.namespace(function() {
 
       this.terrain.update(app);
       this.itemDrawer.update(app);
-      this.effectSprites.update(app);
+      this.spriteDrawer.update(app);
       this.enemyDrawer.update(app);
       this.playerDrawer.update(app);
-      this.bulletSprites.update(app);
-      
-      if (app.ticker.frame % 100 === 0) {
-        this.startZoom(Math.random() * SCREEN_WIDTH, Math.random() * SCREEN_HEIGHT);
-      }
+      this.bulletDrawer.update(app);
     },
 
     draw: function(canvas) {
@@ -542,49 +452,67 @@ phina.namespace(function() {
       var cw = image.width;
       var ch = image.height;
 
-      this.glowEffect.bindCurrent();
+      this.framebufferGlow.bind();
       gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.playerDrawer.renderGlow();
-      this.enemyDrawer.renderGlow();
-      this.glowEffect.renderBefore();
+      this.enemyDrawer.renderGlow(this.orthoCamera.uniformValues());
+      this.playerDrawer.renderGlow(this.orthoCamera.uniformValues());
       gl.flush();
 
-      this.framebufferNormal.bind();
+      this.framebufferGlowBlur1.bind();
       gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.terrain.render();
-      this.itemDrawer.render();
-      this.effectSprites.render();
-      this.enemyDrawer.render();
-      this.playerDrawer.render();
-      this.glowEffect.renderCurrent();
-      this.bulletSprites.render();
+      this.ppCopy.render(this.framebufferGlowBlur2.texture, { alpha: 0.7 }, true);
+      for (var i = 0; i < 3; i++) {
+        this.ppBlur.render(this.framebufferGlow.texture, null, true);
+      }
       gl.flush();
 
-      this.framebufferBlur.bind();
+      this.framebufferMain.bind();
       gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.ppZoomBlur.render(this.framebufferNormal.texture, {
-        center: this.ppZoomBlur.viewCoordToShaderCoord(this.zoomCenterX, this.zoomCenterY),
-        strength: this.zoomStrength,
-      });
+      this.terrain.render({
+        diffuseColor: [0.12, 0.12, 0.12 * 2.6, 0.75],
+      }.$extend(this.perseCamera.uniformValues()));
+      this.itemDrawer.render(this.orthoCamera.uniformValues());
+      this.enemyDrawer.render({
+        diffuseColor: [1.0, 1.0, 1.0, 1.0],
+      }.$extend(this.orthoCamera.uniformValues()));
+      this.spriteDrawer.render(this.orthoCamera.uniformValues());
+      this.playerDrawer.render(this.orthoCamera.uniformValues());
+      this.ppCopy.render(this.framebufferGlowBlur1.texture, null, true);
+      this.bulletDrawer.render(this.orthoCamera.uniformValues());
       gl.flush();
+
+      if (this.zoomStrength > 0 && this.zoomAlpha > 0) {
+        this.framebufferZoom.bind();
+        gl.viewport(0, 0, cw, ch);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        this.ppZoom.render(this.framebufferMain.texture, {
+          center: this.ppZoom.viewCoordToShaderCoord(this.zoomCenterX, this.zoomCenterY),
+          strength: this.zoomStrength,
+        });
+        gl.flush();
+      }
 
       phigl.Framebuffer.unbind(gl);
       gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.ppCopy.render(this.framebufferNormal.texture, {
+      this.ppCopy.render(this.framebufferMain.texture, {
         alpha: 1.0 - this.zoomAlpha,
       });
-      this.ppCopy.render(this.framebufferBlur.texture, {
-        alpha: this.zoomAlpha,
-      });
+      if (this.zoomStrength > 0 && this.zoomAlpha > 0) {
+        this.ppCopy.render(this.framebufferZoom.texture, {
+          alpha: this.zoomAlpha,
+        }, true);
+      }
       gl.flush();
 
       canvas.context.drawImage(image, 0, 0, cw, ch, -this.width * this.originX, -this.height * this.originY, this.width, this.height);
 
-      this.glowEffect.switchFramebuffer();
+      var temp = this.framebufferGlowBlur1;
+      this.framebufferGlowBlur1 = this.framebufferGlowBlur2;
+      this.framebufferGlowBlur2 = temp;
     },
 
     startZoom: function(x, y) {
@@ -596,9 +524,9 @@ phina.namespace(function() {
           zoomAlpha: 1.0,
         })
         .to({
-          zoomStrength: 30,
+          zoomStrength: 10,
           zoomAlpha: 0,
-        }, 40, "easeOutQuad");
+        }, 20, "easeOutQuad");
     },
 
     _static: {
@@ -644,7 +572,7 @@ phina.namespace(function() {
           // 
           +1, -1, w / sw, 0,
         ])
-        .setUniforms("texture", "alpha", "canvasSize");
+        .setUniforms("texture", "canvasSize");
 
       this.copyDrawer = phigl.Drawable(gl)
         .setDrawMode(gl.TRIANGLE_STRIP)
@@ -678,8 +606,7 @@ phina.namespace(function() {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
       this.drawer.uniforms.texture.setValue(0).setTexture(this.current.texture);
-      this.drawer.uniforms.alpha.value = 0.2;
-      this.drawer.uniforms.canvasSize.value = this.current.width;
+      this.drawer.uniforms.canvasSize.value = [this.current.width, this.current.height];
       this.drawer.draw();
 
       return this;
@@ -714,21 +641,39 @@ phina.namespace(function() {
     superClass: "phina.display.DisplayScene",
 
     init: function(gl) {
-      this.superInit();
+      this.superInit({
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
+        backgroundColor: "white",
+      });
       this.gl = gl;
       this.totalCount = 0;
       this.count = 0;
 
-      this.one("enter", function() {
-        this.load();
+      this.fromJSON({
+        children: {
+          label: {
+            className: "phina.display.Label",
+            arguments: "ロード中",
+            x: SCREEN_WIDTH / 2,
+            y: SCREEN_HEIGHT / 2,
+            fill: "black",
+            stroke: null,
+          },
+        }
       });
+
+      this.tweener.wait(2).call(function() {
+        this.load();
+      }.bind(this));
     },
 
     onprogress: function() {
       this.count += 1;
-      
+
       // TODO
       console.log(this.count + "/" + this.totalCount);
+      this.label.text = this.count + "/" + this.totalCount;
     },
 
     oncomplete: function() {
@@ -758,6 +703,7 @@ phina.namespace(function() {
           manager.set("shader", name, shader);
 
           self.flare("progress");
+          console.log("shader", name);
           resolve();
         });
 
@@ -780,10 +726,13 @@ phina.namespace(function() {
           manager.set("edgesIbo", key, edgesIbo);
 
           self.flare("progress");
+
+          console.log("vbo", key);
           resolve();
         });
 
         flows.push(flow);
+
       });
 
       manager.assets["image"].forIn(function(key, image) {
@@ -793,13 +742,17 @@ phina.namespace(function() {
           manager.set("texture", key, texture);
 
           self.flare("progress");
+
+          console.log("texture", key);
           resolve();
         });
 
         flows.push(flow);
+
       });
 
       phina.util.Flow.all(flows).then(function() {
+        console.log("complete");
         self.flare("complete");
       });
 
@@ -830,6 +783,9 @@ phina.namespace(function() {
 
 phina.namespace(function() {
 
+  var rx = quat.setAxisAngle(quat.create(), [1, 0, 0], (30).toRadian());
+  var tq = quat.create();
+
   phina.define("glb.Obj", {
     superClass: "phina.app.Element",
 
@@ -843,12 +799,11 @@ phina.namespace(function() {
 
     dirty: true,
 
-    init: function(id, instanceData, instanceStride, objType) {
+    init: function(id, instanceData, instanceStride) {
       this.superInit();
       this.id = id;
       this.instanceData = instanceData;
       this.index = id * instanceStride;
-      this.objType = objType;
 
       this.position = vec3.create();
       this.quaternion = quat.create();
@@ -857,6 +812,18 @@ phina.namespace(function() {
     },
 
     spawn: function(options) {
+      options = {}.$extend({
+        x: 0,
+        y: 0,
+        z: 0,
+        rotX: 0,
+        rotY: 0,
+        rotZ: 0,
+        scaleX: OBJ_SCALE,
+        scaleY: OBJ_SCALE,
+        scaleZ: OBJ_SCALE,
+      }, options);
+      
       var index = this.index;
       var instanceData = this.instanceData;
       this.age = 0;
@@ -886,7 +853,13 @@ phina.namespace(function() {
       var instanceData = this.instanceData;
 
       if (this.dirty) {
-        mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale);
+        if (this.isEnemy) {
+          quat.mul(tq, rx, this.quaternion);
+          mat4.fromRotationTranslationScale(this.matrix, tq, this.position, this.scale);
+        } else {
+          mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale);
+        }
+
         instanceData[index + 1] = this.matrix[0];
         instanceData[index + 2] = this.matrix[1];
         instanceData[index + 3] = this.matrix[2];
@@ -1107,8 +1080,6 @@ phina.namespace(function() {
 
     faceDrawer: null,
 
-    cameraPosition: null,
-
     init: function(gl, ext, w, h) {
       this.gl = gl;
 
@@ -1155,16 +1126,14 @@ phina.namespace(function() {
           "texture"
         );
 
-      this.cameraPosition = vec3.set(vec3.create(), w / 2, h * 0.5, w * 1.5);
-      this.vMatrix = mat4.lookAt(mat4.create(), this.cameraPosition, [w / 2, h / 2, 0], [0, 1, 0]);
-      this.pMatrix = mat4.ortho(mat4.create(), -w / 2, w / 2, h / 2, -h / 2, 0.1, 3000);
-      this.vpMatrix = mat4.create();
       this.lightDirection = vec3.set(vec3.create(), -1.0, 0.0, -1.0);
-      this.diffuseColor = [0.9, 0.9, 0.9, 1.0];
+      this.diffuseColor = [1.0, 1.0, 1.0, 1.0];
       this.ambientColor = [0.4, 0.4, 0.4, 1.0];
     },
 
-    addObjType: function(objType, count) {
+    addObjType: function(objType, count, className) {
+      className = className || "glb.Obj";
+
       count = count || 1;
       var self = this;
       var instanceStride = this.faceDrawer.instanceStride / 4;
@@ -1188,10 +1157,12 @@ phina.namespace(function() {
         this.ibos[objType] = phina.asset.AssetManager.get("ibo", objType + ".obj");
         this.vbos[objType] = phina.asset.AssetManager.get("vbo", objType + ".obj");
         this.textures[objType] = phina.asset.AssetManager.get("texture", objType + ".png");
+
+        var ObjClass = phina.using(className);
         this.pools[objType] = Array.range(count).map(function(id) {
-          return glb.Obj(id, instanceData, instanceStride, objType)
+          return ObjClass(id, instanceData, instanceStride)
             .on("removed", function() {
-              self.pools[this.objType].push(this);
+              self.pools[objType].push(this);
             });
         });
 
@@ -1204,22 +1175,25 @@ phina.namespace(function() {
     },
 
     update: function(app) {
-      mat4.mul(this.vpMatrix, this.pMatrix, this.vMatrix);
       vec3.normalize(this.lightDirection, this.lightDirection);
     },
 
-    render: function() {
+    render: function(uniforms) {
       var self = this;
       var gl = this.gl;
       gl.enable(gl.BLEND);
       gl.enable(gl.DEPTH_TEST);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-      this.faceDrawer.uniforms.vpMatrix.value = this.vpMatrix;
-      this.faceDrawer.uniforms.cameraPosition.value = this.cameraPosition;
       this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
       this.faceDrawer.uniforms.diffuseColor.value = this.diffuseColor;
       this.faceDrawer.uniforms.ambientColor.value = this.ambientColor;
+
+      if (uniforms) {
+        uniforms.forIn(function(key, value) {
+          if (this.faceDrawer.uniforms[key]) this.faceDrawer.uniforms[key].value = value;
+        }.bind(this));
+      }
 
       this.objTypes.forEach(function(objType) {
         var count = self.counts[objType];
@@ -1237,14 +1211,18 @@ phina.namespace(function() {
       });
     },
 
-    renderGlow: function() {
+    renderGlow: function(uniforms) {
       var self = this;
       var gl = this.gl;
       gl.enable(gl.BLEND);
       gl.enable(gl.DEPTH_TEST);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-      this.glowDrawer.uniforms.vpMatrix.value = this.vpMatrix;
+      if (uniforms) {
+        uniforms.forIn(function(key, value) {
+          if (this.glowDrawer.uniforms[key]) this.glowDrawer.uniforms[key].value = value;
+        }.bind(this));
+      }
 
       this.objTypes.forEach(function(objType) {
         var count = self.counts[objType];
@@ -1275,7 +1253,7 @@ phina.namespace(function() {
 
     width: 0,
     height: 0,
-
+    
     init: function(gl, w, h, shaderName, uniforms) {
       this.gl = gl;
 
@@ -1305,16 +1283,21 @@ phina.namespace(function() {
       this.sh = sh;
     },
 
-    render: function(texture, uniformValues) {
+    render: function(texture, uniformValues, additiveBlending) {
       var gl = this.gl;
 
       gl.enable(gl.BLEND);
       gl.disable(gl.DEPTH_TEST);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      
+      if (additiveBlending) {
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      } else {
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      }
 
       this.drawer.uniforms.texture.setValue(0).setTexture(texture);
       this.drawer.uniforms.canvasSize.value = [this.sw, this.sh];
-      this.setUniforms(uniformValues);
+      if (uniformValues) this.setUniforms(uniformValues);
       this.drawer.draw();
 
       return this;
@@ -1329,7 +1312,7 @@ phina.namespace(function() {
     
     viewCoordToShaderCoord: function(x, y) {
       var q = glb.GLLayer.quality;
-      return [x * q / this.sw, (SCREEN_HEIGHT - y * q) / this.sh];
+      return [x * q / this.sw, (SCREEN_HEIGHT - y) * q / this.sh];
     },
 
   });
@@ -1338,7 +1321,296 @@ phina.namespace(function() {
 
 phina.namespace(function() {
 
-  phina.define("glb.Terrain", {
+  phina.define("glb.ScorePanel", {
+    superClass: "phina.display.DisplayElement",
+
+    init: function() {
+      this.superInit();
+      this.fromJSON({
+        originX: 0,
+        originY: 0,
+        children: {
+          
+        },
+      });
+    },
+  });
+
+});
+
+phina.namespace(function() {
+  phina.define("glb.Shot", {
+    superClass: "glb.Sprite",
+
+    init: function(id, instanceData, instanceStride) {
+      this.superInit(id, instanceData, instanceStride);
+    },
+
+    spawn: function(options) {
+      this.dx = options.dx;
+      this.dy = options.dy;
+      return glb.Sprite.prototype.spawn.call(this, options);
+    },
+
+    update: function(app) {
+      this.x += this.dx;
+      this.y += this.dy;
+      glb.Sprite.prototype.update.call(this, app);
+    },
+
+  });
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.Sprite", {
+    superClass: "phina.app.Element",
+
+    id: -1,
+    instanceData: null,
+
+    x: 0,
+    y: 0,
+    rotation: 0,
+    scale: 0,
+
+    age: 0,
+
+    init: function(id, instanceData, instanceStride) {
+      this.superInit();
+      this.id = id;
+      this.instanceData = instanceData;
+      this.index = id * instanceStride;
+    },
+
+    spawn: function(options) {
+      options.$safe({
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scale: 1,
+        frameX: 0,
+        frameY: 0,
+        alpha: 1,
+      });
+      
+      var index = this.index;
+      var instanceData = this.instanceData;
+
+      this.x = options.x;
+      this.y = options.y;
+      this.rotation = options.rotation;
+      this.scale = options.scale;
+      this.frameX = options.frameX;
+      this.frameY = options.frameY;
+      this.alpha = options.alpha;
+
+      instanceData[index + 0] = 1; // visible
+      instanceData[index + 1] = this.x; // position.x
+      instanceData[index + 2] = this.y; // position.y
+      instanceData[index + 3] = this.rotation; // rotation
+      instanceData[index + 4] = this.scale; // scale
+      instanceData[index + 5] = this.frameX; // frame.x
+      instanceData[index + 6] = this.frameY; // frame.y
+      instanceData[index + 7] = this.alpha; // alpha
+
+      this.age = 0;
+
+      return this;
+    },
+
+    update: function(app) {
+      var index = this.index;
+      var instanceData = this.instanceData;
+
+      if (this.x < -100 || 640 + 100 < this.x || this.y < -100 || 960 + 100 < this.y) {
+        this.remove();
+        return;
+      }
+
+      instanceData[index + 1] = this.x; // position.x
+      instanceData[index + 2] = this.y; // position.y
+      instanceData[index + 3] = this.rotation; // rotation
+      instanceData[index + 4] = this.scale; // scale
+      instanceData[index + 5] = this.frameX; // frame.x
+      instanceData[index + 6] = this.frameY; // frame.y
+      instanceData[index + 7] = this.alpha; // alpha
+
+      this.age += 1;
+    },
+
+    onremoved: function() {
+      this.instanceData[this.index + 0] = 0;
+    }
+  });
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.SpritDrawer", {
+    superClass: "phigl.InstancedDrawable",
+
+    objTypes: null,
+
+    counts: null,
+    instanceData: null,
+    textures: null,
+    pools: null,
+
+    init: function(gl, ext, w, h) {
+      this.superInit(gl, ext);
+
+      this.objTypes = [];
+
+      this.counts = {};
+      this.instanceData = {};
+      this.instanceVbos = {};
+      this.textures = {};
+      this.pools = {};
+
+      this
+        .setProgram(phina.asset.AssetManager.get("shader", "sprites"))
+        .setDrawMode(gl.TRIANGLE_STRIP)
+        .setIndexValues([0, 1, 2, 3])
+        .setAttributes("position", "uv")
+        .setAttributeDataArray([{
+          unitSize: 2,
+          data: [
+            //
+            -16, +16,
+            //
+            +16, +16,
+            //
+            -16, -16,
+            //
+            +16, -16,
+          ]
+        }, {
+          unitSize: 2,
+          data: [
+            //
+            0, 32 / 256,
+            //
+            32 / 256, 32 / 256,
+            //
+            0, 0,
+            //
+            32 / 256, 0,
+          ]
+        }, ])
+        .setInstanceAttributes(
+          "instanceVisible",
+          "instancePosition",
+          "instanceRotation",
+          "instanceScale",
+          "instanceFrame",
+          "instanceAlpha"
+        )
+        .setUniforms(
+          "vpMatrix",
+          "texture",
+          "globalScale"
+        );
+
+      var instanceStride = this.instanceStride / 4;
+
+      this.uniforms.globalScale.setValue(1.0);
+    },
+
+    addObjType: function(textureName, count, className) {
+      className = className || "glb.Sprite";
+
+      count = count || 1;
+      var self = this;
+      var instanceStride = this.instanceStride / 4;
+
+      if (!this.objTypes.contains(textureName)) {
+        this.counts[textureName] = count;
+        var instanceData = this.instanceData[textureName] = Array.range(count).map(function(i) {
+          return [
+            // visible
+            0,
+            // m0
+            1, 0, 0,
+            // m1
+            0, 1, 0,
+            // m2
+            0, 0, 1,
+            // m3
+            0, 0, 0,
+          ];
+        }).flatten();
+        this.instanceVbos[textureName] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW);
+
+        this.textures[textureName] = phina.asset.AssetManager.get("texture", textureName + ".png");
+
+        var ObjClass = phina.using(className);
+        this.pools[textureName] = Array.range(count).map(function(id) {
+          return ObjClass(id, instanceData, instanceStride)
+            .on("removed", function() {
+              self.pools[textureName].push(this);
+            });
+        });
+
+        this.objTypes.push(textureName);
+      }
+    },
+
+    _createTexture: function() {
+      var texture = phina.graphics.Canvas().setSize(512, 512);
+      var context = texture.context;
+      var g = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+      g.addColorStop(0.0, "rgba(255, 255, 255, 0.3)");
+      g.addColorStop(0.6, "rgba(255, 125,   0, 0.3)");
+      g.addColorStop(1.0, "rgba(255,   0,   0, 0.0)");
+      context.fillStyle = g;
+      context.fillRect(0, 0, 64, 64);
+      return texture;
+    },
+
+    get: function(textureName) {
+      return this.pools[textureName].shift();
+    },
+
+    update: function() {
+    },
+
+    render: function(uniforms) {
+      var gl = this.gl;
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.CULL_FACE);
+
+      this.uniforms.globalScale.value = 1.0;
+
+      if (uniforms) {
+        uniforms.forIn(function(key, value) {
+          if (this.uniforms[key]) this.uniforms[key].value = value;
+        }.bind(this));
+      }
+      var self = this;
+      this.objTypes.forEach(function(textureName) {
+        var count = self.counts[textureName];
+        var instanceData = self.instanceData[textureName];
+        var instanceVbo = self.instanceVbos[textureName];
+        var texture = self.textures[textureName];
+
+        instanceVbo.set(instanceData);
+
+        self.setInstanceAttributeVbo(instanceVbo);
+        self.uniforms.texture.setValue(0).setTexture(texture);
+        self.draw(count);
+      });
+    },
+  });
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.TerrainDrawer", {
 
     gl: null,
     faceDrawer: null,
@@ -1348,11 +1620,9 @@ phina.namespace(function() {
     pool: null,
     count: 0,
 
-    cameraPosition: null,
-
     init: function(gl, ext, w, h) {
       this.gl = gl;
-      this.count = (glb.Terrain.countX * 2) * (glb.Terrain.countZ * 2);
+      this.count = (glb.TerrainDrawer.countX * 2) * (glb.TerrainDrawer.countZ * 2);
       this.faceDrawer = phigl.InstancedDrawable(gl, ext);
       this.edgeDrawer = phigl.InstancedDrawable(gl, ext);
       var instanceData = this.instanceData = [];
@@ -1412,31 +1682,23 @@ phina.namespace(function() {
 
       var instanceStride = this.edgeDrawer.instanceStride / 4;
 
-      this.cameraPosition = vec3.create();
-      vec3.set(this.cameraPosition, 6, 20, 20);
-      var vMatrix = mat4.lookAt(mat4.create(), this.cameraPosition, [0, 0, 0], [0, 1, 0]);
-      var pMatrix = mat4.perspective(mat4.create(), 45, w / h, 0.1, 10000);
-      this.faceDrawer.uniforms.vpMatrix.value = mat4.mul(mat4.create(), pMatrix, vMatrix);
-      this.faceDrawer.uniforms.cameraPosition.value = this.cameraPosition;
-      this.edgeDrawer.uniforms.vpMatrix.value = mat4.mul(mat4.create(), pMatrix, vMatrix);
-      this.edgeDrawer.uniforms.cameraPosition.value = this.cameraPosition;
-
-      this.lightDirection = vec3.set(vec3.create(), 2, 0.5, 0);
+      this.lightDirection = vec3.set(vec3.create(), 1, 1, 0);
       this.faceDrawer.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
-      this.faceDrawer.uniforms.diffuseColor.value = [0.22, 0.22, 0.22 * 1.6, 0.65];
+      // this.faceDrawer.uniforms.diffuseColor.value = [0.22, 0.22, 0.22 * 2.6, 0.75];
       this.faceDrawer.uniforms.ambientColor.value = [0.05, 0.05, 0.05, 1.0];
-      this.edgeDrawer.uniforms.color.value = [0.5, 0.5, 0.5 * 1.2, 1.0];
+      this.edgeDrawer.uniforms.color.value = [0.6, 0.6, 0.6, 1.0];
 
       var self = this;
       this.pool = Array.range(0, this.count).map(function(id) {
         return glb.Obj(id, instanceData, instanceStride)
           .on("enterframe", function() {
-            this.x += self.cameraPosition[0] * 0.025;
-            this.z += self.cameraPosition[2] * 0.025;
+            // 地形の流れる方向
+            this.x += 6 * 0.01;
+            this.z += 20 * 0.01;
 
-            var countX = glb.Terrain.countX;
-            var countZ = glb.Terrain.countZ;
-            var unit = glb.Terrain.unit;
+            var countX = glb.TerrainDrawer.countX;
+            var countZ = glb.TerrainDrawer.countZ;
+            var unit = glb.TerrainDrawer.unit;
             if (this.x < -countX * unit) this.x += countX * unit * 2;
             else if (countX * unit < this.x) this.x -= countX * unit * 2;
             if (this.z < -countZ * unit * 1 / Math.sqrt(3) * 1.5) this.z += countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
@@ -1453,7 +1715,7 @@ phina.namespace(function() {
 
     update: function(app) {
       var f = app.ticker.frame * 0.001;
-      this.lightDirection = vec3.set(this.lightDirection, Math.cos(f * 5) * 1, 0.5, Math.sin(f * 5) * 1);
+      this.lightDirection = vec3.set(this.lightDirection, Math.cos(f * 10) * 1.1, 1, Math.sin(f * 10) * 1.1);
       vec3.normalize(this.lightDirection, this.lightDirection);
       this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
 
@@ -1465,13 +1727,20 @@ phina.namespace(function() {
       return this.pool.shift();
     },
 
-    render: function() {
+    render: function(uniforms) {
       var gl = this.gl;
       gl.enable(gl.BLEND);
       gl.enable(gl.DEPTH_TEST);
       gl.enable(gl.CULL_FACE);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.cullFace(gl.FRONT);
+
+      if (uniforms) {
+        uniforms.forIn(function(key, value) {
+          if (this.edgeDrawer.uniforms[key]) this.edgeDrawer.uniforms[key].value = value;
+          if (this.faceDrawer.uniforms[key]) this.faceDrawer.uniforms[key].value = value;
+        }.bind(this));
+      }
 
       this.edgeDrawer.draw(this.count);
       this.faceDrawer.draw(this.count);

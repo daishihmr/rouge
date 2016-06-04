@@ -18,7 +18,7 @@ varying vec2 vUv;
 varying vec4 vColor;
 varying float vFog;
 
-const float fogStart = 15.0;
+const float fogStart = 1.0;
 const float fogEnd = 40.0;
 
 // https://github.com/stackgl/glsl-inverse
@@ -83,7 +83,7 @@ void main(void) {
     vec3 invEye = normalize(invMatrix * vec4(cameraPosition, 0.0)).xyz;
     vec3 halfLE = normalize(invLight + invEye);
     float diffuse = clamp(dot(normal, invLight), 0.0, 1.0);
-    float specular = pow(clamp(dot(normal, halfLE), 0.0, 1.0), 30.0);
+    float specular = pow(clamp(dot(normal, halfLE), 0.0, 1.0), 2.0);
     vec4 light = diffuseColor * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 0.0);
     vColor = light + vec4(ambientColor.rgb, 0.0);
     vec3 pos = (mMatrix * vec4(position, 1.0)).xyz;
