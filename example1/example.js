@@ -117,6 +117,7 @@ phina.namespace(function() {
     },
 
     start: function() {
+      var self = this;
       var glLayer = this.glLayer;
 
       glLayer.start();
@@ -170,10 +171,6 @@ phina.namespace(function() {
         // ]),
       });
 
-      glLayer.spriteDrawer.addObjType("effect", 500);
-      glLayer.spriteDrawer.addObjType("shot", 100, "glb.Shot");
-
-      glLayer.playerDrawer.addObjType("fighter", 1, "glb.Fighter");
       var player = glLayer.playerDrawer.get("fighter");
       player
         .spawn({
@@ -205,6 +202,8 @@ phina.namespace(function() {
           }
         });
 
+      this.explosion = glb.Explosion(glLayer);
+
       var config = {
         target: player,
         createNewBullet: function(runner, option) {
@@ -217,8 +216,7 @@ phina.namespace(function() {
       var launchEnemy = function(x, y) {
         var runner = pattern.createRunner(config);
         var t = Math.randfloat(-Math.PI, Math.PI);
-        var e = glLayer.enemyDrawer.get("enemyS4")
-        e.isEnemy = true;
+        var e = glLayer.enemyDrawer.get("enemyS4");
         e
           .spawn({
             x: x,
@@ -230,18 +228,24 @@ phina.namespace(function() {
           })
           .addChildTo(glLayer)
           .on("enterframe", function(e) {
+            var f = e.app.ticker.frame;
+            
             this.rotateZ(0.1);
 
-            this.x = x + Math.cos(e.app.ticker.frame * 0.06 + t) * 150;
-            this.y = y + Math.sin(e.app.ticker.frame * 0.06 + t) * 150;
+            this.x = x + Math.cos(f * 0.06 + t) * 150;
+            this.y = y + Math.sin(f * 0.06 + t) * 150;
 
             runner.x = this.x;
             runner.y = this.y;
             runner.update();
+
+            if (f % 60 === 0) {
+              self.explosion.small(this.x, this.y);
+            }
           });
       };
 
-      for (var i = 0; i < 1000; i++) {
+      for (var i = 0; i < 5; i++) {
         launchEnemy(Math.randfloat(80, SCREEN_WIDTH - 80), Math.randfloat(80, SCREEN_HEIGHT * 0.5 - 80));
       }
 
@@ -253,73 +257,11 @@ phina.namespace(function() {
     },
 
     update: function(app) {
-      return;
       var self = this;
       var glLayer = this.glLayer;
       var f = app.ticker.frame;
 
       if (!glLayer.ready) return;
-
-      if (f % 60 === 0) {
-        var x = Math.randfloat(0, this.width);
-        var y = Math.randfloat(this.height * 0.5, this.height);
-
-        glLayer.startZoom(x, y);
-
-        (15).times(function() {
-          var a = Math.randfloat(0, Math.PI * 2);
-          var r = Math.randfloat(20, 100);
-          var e = glLayer.spriteDrawer.get("effect");
-          if (!e) return;
-          e
-            .spawn({
-              x: x + Math.cos(a) * r * 0.1,
-              y: y + Math.sin(a) * r * 0.1,
-              rotation: 0,
-              scale: 2,
-              alpha: 2,
-            })
-            .addChildTo(self.glLayer)
-            .tweener
-            .clear()
-            .to({
-              x: x + Math.cos(a) * r,
-              y: y + Math.sin(a) * r,
-              scale: 4,
-              alpha: 0,
-            }, 15)
-            .call(function() {
-              e.remove();
-            });
-        });
-
-        (10).times(function() {
-          var a = Math.randfloat(0, Math.PI * 2);
-          var r = Math.randfloat(150, 250);
-          var e = glLayer.spriteDrawer.get("effect");
-          if (!e) return;
-          e
-            .spawn({
-              x: x + Math.cos(a) * r * 0.1,
-              y: y + Math.sin(a) * r * 0.1,
-              rotation: 0,
-              scale: Math.randfloat(0.2, 0.4),
-              alpha: 5,
-            })
-            .addChildTo(self.glLayer)
-            .tweener
-            .clear()
-            .to({
-              x: x + Math.cos(a) * r,
-              y: y + Math.sin(a) * r,
-              alpha: 0,
-            }, 40, "easeOutQuad")
-            .call(function() {
-              e.remove();
-            });
-        });
-
-      }
     },
   });
 

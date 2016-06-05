@@ -1,20 +1,27 @@
 phina.namespace(function() {
 
-  phina.define("glb.Fighter", {
+  phina.define("glb.Enemy", {
     superClass: "glb.Obj",
+
+    _active: false,
 
     hp: 0,
     mutekiTime: 0,
 
     init: function(id, instanceData, instanceStride) {
       this.superInit(id, instanceData, instanceStride);
+    },
 
-      this.roll = 0;
+    activate: function() {
+      this._active = true;
+      this.flare("activated");
+      return this;
+    },
 
-      this.on("enterframe", function(e) {
-        var app = e.app;
-        this.move(app);
-      });
+    inactivate: function() {
+      this._active = false;
+      this.flare("inactivated");
+      return this;
     },
 
     update: function(app) {
@@ -44,41 +51,17 @@ phina.namespace(function() {
       this.mutekiTime -= 1;
     },
 
-    move: function(app) {
-      var kb = app.keyboard;
-      var dir = kb.getKeyDirection();
-
-      this.x = Math.clamp(this.x + dir.x * 22, 0, SCREEN_WIDTH - 0);
-      this.y = Math.clamp(this.y + dir.y * 22, 0, SCREEN_HEIGHT - 0);
-
-      if (dir.x) {
-        this.roll = Math.clamp(this.roll - dir.x * 0.2, (-90).toRadian(), (90).toRadian());
-      } else {
-        if (this.roll < -0.2) {
-          this.roll += 0.2;
-        } else if (0.2 < this.roll) {
-          this.roll -= 0.2;
-        } else {
-          this.roll = 0;
-        }
-      }
-
-      quat.copy(this.quaternion, BASE_QUAT);
-      quat.rotateX(this.quaternion, this.quaternion, this.roll);
-    },
-
-    damage: function(v) {
+    damage: function(d) {
       if (this.mutekiTime > 0) {
         this.hp -= v;
-        this.mutekiTime = 180;
+        this.mutekiTime = 1;
         this.flare("damaged");
       }
     },
 
   });
 
-  var BASE_QUAT = quat.rotateZ(quat.create(), quat.create(), (-90).toRadian());
-  var RX = quat.setAxisAngle(quat.create(), [1, 0, 0], (10).toRadian());
+  var RX = quat.setAxisAngle(quat.create(), [1, 0, 0], (30).toRadian());
   var tempQuat = quat.create();
 
 });

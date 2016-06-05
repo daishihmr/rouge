@@ -1,8 +1,5 @@
 phina.namespace(function() {
 
-  var rx = quat.setAxisAngle(quat.create(), [1, 0, 0], (30).toRadian());
-  var tq = quat.create();
-
   phina.define("glb.Obj", {
     superClass: "phina.app.Element",
 
@@ -70,12 +67,7 @@ phina.namespace(function() {
       var instanceData = this.instanceData;
 
       if (this.dirty) {
-        if (this.isEnemy) {
-          quat.mul(tq, rx, this.quaternion);
-          mat4.fromRotationTranslationScale(this.matrix, tq, this.position, this.scale);
-        } else {
-          mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale);
-        }
+        mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale);
 
         instanceData[index + 1] = this.matrix[0];
         instanceData[index + 2] = this.matrix[1];

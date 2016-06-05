@@ -1,5 +1,152 @@
 phina.namespace(function() {
 
+  phina.define("strike.NumberSpriteArray", {
+    superClass: "phina.display.DisplayElement",
+
+    sprites: null,
+    commas: null,
+    digit: 0,
+
+    _value: 0,
+
+    init: function(options) {
+      options = {}.$extend({
+        digit: 8,
+      }, options);
+
+      this.digit = options.digit;
+
+      this.sprites = Array.range(0, options.digit).map(function() {
+        return strike.NumberSprite(options)
+          .setOrigin(0, 0);
+      });
+
+      this.superInit({
+        width: this.sprites[0].width * options.digit,
+        height: options.fontSize,
+      });
+
+      var self = this;
+      this.sprites.forEach(function(s, i, all) {
+        s.x += (all.length - i - 1) * s.width;
+        s.addChildTo(self);
+      });
+
+      this.commas = [];
+      for (var i = 1; i < this.digit / 3; i++) {
+        var c = phina.display.Label({
+            text: ",",
+          }.$extend(options))
+          .setPosition((this.digit - i * 3) * this.sprites[0].width, this.sprites[0].height * 0.5)
+          .addChildTo(this);
+        this.commas.push(c);
+      }
+    },
+
+    setValue: function(num) {
+      this._value = num;
+      var n = Math.floor(num);
+
+      var s = ("" + n).length / 3 - 1;
+      this.commas.forEach(function(c, i) {
+        c.visible = i < s;
+      });
+
+      for (var i = 0; i < this.digit; i++) {
+        if (n === 0) {
+          this.sprites[i].visible = false;
+        } else {
+          this.sprites[i].visible = true;
+          this.sprites[i].frameIndex = n % 10;
+        }
+        n = Math.floor(n / 10);
+      }
+    },
+
+    _accessor: {
+      value: {
+        get: function() {
+          return this._value;
+        },
+        set: function(v) {
+          this.setValue(v);
+        }
+      }
+    }
+  });
+
+  phina.define("strike.NumberSprite", {
+    superClass: "phina.display.Sprite",
+
+    init: function(options) {
+      options = {}.$extend({
+        fontSize: 20,
+        fontFamily: "sans-serif",
+        fill: "white",
+        stroke: null,
+        fontWeight: "",
+      }, options);
+
+      var canvas = phina.graphics.Canvas();
+      var context = canvas.context;
+
+      this.unitWidth = Array.range(0, 10)
+        .map(function(i) {
+          context.font = "{fontWeight} {fontSize}px '{fontFamily}'".format(options);
+          return context.measureText("" + i).width;
+        })
+        .sort(function(lhs, rhs) {
+          return lhs - rhs;
+        })
+        .map(function(w) {
+          return w;
+        })
+        .last + 1 | 0;
+
+      this.unitWidth *= 1.15;
+
+      var w = this.unitWidth * 10;
+      var h = options.fontSize;
+      canvas.setSize(Math.pow(2, Math.log2(w) + 1 | 0), Math.pow(2, Math.log2(h) + 1 | 0));
+
+      context.font = "{fontWeight} {fontSize}px '{fontFamily}'".format(options);
+      context.fillStyle = options.fill;
+      context.strokeStyle = options.stroke;
+      context.textAlign = "center"
+      context.textBaseline = "middle";
+      for (var i = 0; i < 10; i++) {
+        if (options.fill) context.fillText("" + i, this.unitWidth * (0.5 + i), h / 2);
+        if (options.stroke) context.strokeText("" + i, w * (0.5 + i), h / 2);
+      }
+
+      this.superInit(canvas, this.unitWidth, h);
+      this.setFrameIndex(0);
+    },
+  });
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.ScorePanel", {
+    superClass: "phina.display.DisplayElement",
+
+    init: function() {
+      this.superInit();
+      this.fromJSON({
+        originX: 0,
+        originY: 0,
+        children: {
+          
+        },
+      });
+    },
+  });
+
+});
+
+phina.namespace(function() {
+
   phina.define("glb.Bullet", {
     superClass: "phina.app.Element",
 
@@ -10,6 +157,10 @@ phina.namespace(function() {
     x: 0,
     y: 0,
     age: 0,
+
+    power: 0,
+
+    _active: false,
 
     init: function(id, instanceData, instanceStride) {
       this.superInit();
@@ -46,7 +197,19 @@ phina.namespace(function() {
 
       return this;
     },
-    
+
+    activate: function() {
+      this._active = true;
+      this.flare("activated");
+      return this;
+    },
+
+    inactivate: function() {
+      this._active = false;
+      this.flare("inactivated");
+      return this;
+    },
+
     onremoved: function() {
       this.instanceData[this.index + 6] = 0;
     },
@@ -248,6 +411,118 @@ phina.namespace(function() {
 
 phina.namespace(function() {
 
+  phina.define("glb.Collisions", {
+    superClass: "phina.util.EventDispatcher",
+
+    player: null,
+    bullets: null,
+    enemies: null,
+    shots: null,
+
+    init: function() {
+      this.superInit();
+
+      this.player = null;
+      this.bullets = [];
+      this.enemies = [];
+      this.shots = [];
+    },
+
+    setPlayer: function(v) {
+      this.player = v;
+      v.on("inactivated", function() {
+        this.player = null;
+      }.bind(this));
+      v.on("removed", function() {
+        this.player = null;
+      }.bind(this));
+    },
+
+    addBullet: function(v) {
+      this.bullets.push(v);
+      v.on("inactivated", function() {
+        this.bullets.erase(v);
+      }.bind(this));
+      v.on("removed", function() {
+        this.bullets.erase(v);
+      }.bind(this));
+    },
+
+    addEnemy: function(v) {
+      this.enemies.push(v);
+      v.on("inactivated", function() {
+        this.enemies.erase(v);
+      }.bind(this));
+      v.on("removed", function() {
+        this.enemies.erase(v);
+      }.bind(this));
+    },
+
+    addShot: function(v) {
+      this.shots.push(v);
+      v.on("inactivated", function() {
+        this.shots.erase(v);
+      }.bind(this));
+      v.on("removed", function() {
+        this.shots.erase(v);
+      }.bind(this));
+    },
+
+    update: function(app) {
+      this._hitTestShotEnemy();
+      this._hitTestPlayerBullet();
+      this._hitTestPlayerEnemy();
+    },
+
+    _hitTestShotEnemy: function() {
+      var ss = this.shots.clone();
+      var es = this.enemies.clone();
+      var s;
+      var e;
+      for (var i = 0, il = ss.length; i < il; i++) {
+        s = ss[i];
+        for (var j = 0, jl = es.length; j < jl; j++) {
+          e = es[j];
+
+          if ((e.x - s.x) * (e.x - s.x) + (e.y - s.y) * (e.y - s.y) < e.radius * e.radius) {
+            e.damage(s.power);
+            s.hitEnemy(e);
+          }
+        }
+      }
+    },
+
+    _hitTestPlayerBullet: function() {
+      var p = this.player;
+      var bs = this.bullets.clone();
+      var b;
+      for (var i = 0, il = bs.length; i < il; i++) {
+        b = bs[i];
+        if ((p.x - b.x) * (p.x - b.x) + (p.y - b.y) * (p.y - b.y) < b.radius * b.radius) {
+          p.damage(b.power);
+          b.inactivate();
+        }
+      }
+    },
+
+    _hitTestPlayerEnemy: function() {
+      var p = this.player;
+      var es = this.enemies.clone();
+      var e;
+      for (var i = 0, il = es.length; i < il; i++) {
+        e = es[i];
+        if ((p.x - e.x) * (p.x - e.x) + (p.y - e.y) * (p.y - e.y) < e.radius * e.radius) {
+          p.damage(e.power);
+        }
+      }
+    },
+
+  });
+
+});
+
+phina.namespace(function() {
+
   phina.define("glb.DownloadScene", {
     superClass: "phina.game.LoadingScene",
 
@@ -264,21 +539,186 @@ phina.namespace(function() {
 
 phina.namespace(function() {
 
-  var BASE_QUAT = quat.rotateZ(quat.create(), quat.create(), (-90).toRadian());
+  phina.define("glb.Enemy", {
+    superClass: "glb.Obj",
+
+    _active: false,
+
+    hp: 0,
+    mutekiTime: 0,
+
+    init: function(id, instanceData, instanceStride) {
+      this.superInit(id, instanceData, instanceStride);
+    },
+
+    activate: function() {
+      this._active = true;
+      this.flare("activated");
+      return this;
+    },
+
+    inactivate: function() {
+      this._active = false;
+      this.flare("inactivated");
+      return this;
+    },
+
+    update: function(app) {
+      var index = this.index;
+      var instanceData = this.instanceData;
+
+      if (this.dirty) {
+        quat.mul(tempQuat, RX, this.quaternion);
+        mat4.fromRotationTranslationScale(this.matrix, tempQuat, this.position, this.scale);
+
+        instanceData[index + 1] = this.matrix[0];
+        instanceData[index + 2] = this.matrix[1];
+        instanceData[index + 3] = this.matrix[2];
+        instanceData[index + 4] = this.matrix[4];
+        instanceData[index + 5] = this.matrix[5];
+        instanceData[index + 6] = this.matrix[6];
+        instanceData[index + 7] = this.matrix[8];
+        instanceData[index + 8] = this.matrix[9];
+        instanceData[index + 9] = this.matrix[10];
+        instanceData[index + 10] = this.matrix[12];
+        instanceData[index + 11] = this.matrix[13];
+        instanceData[index + 12] = this.matrix[14];
+        this.dirty = false;
+      }
+
+      this.age += 1;
+      this.mutekiTime -= 1;
+    },
+
+    damage: function(d) {
+      if (this.mutekiTime > 0) {
+        this.hp -= v;
+        this.mutekiTime = 1;
+        this.flare("damaged");
+      }
+    },
+
+  });
+
+  var RX = quat.setAxisAngle(quat.create(), [1, 0, 0], (30).toRadian());
+  var tempQuat = quat.create();
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.Explosion", {
+
+    glLayer: null,
+
+    init: function(glLayer) {
+      this.glLayer = glLayer;
+    },
+
+    small: function(x, y) {
+      var glLayer = this.glLayer;
+
+      (10).times(function() {
+        var a = Math.randfloat(0, Math.PI * 2);
+        var r = Math.randfloat(30, 45);
+        var e = glLayer.spriteDrawer.get("effect");
+        if (!e) return;
+        e
+          .spawn({
+            x: x + Math.cos(a) * r * 0.2,
+            y: y + Math.sin(a) * r * 0.2,
+            rotation: 0,
+            scale: 1,
+            alpha: 3,
+          })
+          .addChildTo(glLayer)
+          .tweener
+          .clear()
+          .to({
+            x: x + Math.cos(a) * r,
+            y: y + Math.sin(a) * r,
+            scale: 3,
+            alpha: 0,
+          }, 10, "easeOutQuad")
+          .call(function() {
+            e.remove();
+          });
+      });
+
+      (7).times(function() {
+        var a = Math.randfloat(0, Math.PI * 2);
+        var r = Math.randfloat(75, 125);
+        var e = glLayer.spriteDrawer.get("effect");
+        if (!e) return;
+        e
+          .spawn({
+            x: x + Math.cos(a) * r * 0.1,
+            y: y + Math.sin(a) * r * 0.1,
+            rotation: 0,
+            scale: Math.randfloat(0.2, 0.4),
+            alpha: 5,
+          })
+          .addChildTo(glLayer)
+          .tweener
+          .clear()
+          .to({
+            x: x + Math.cos(a) * r,
+            y: y + Math.sin(a) * r,
+            alpha: 0,
+          }, 20, "easeOutQuad")
+          .call(function() {
+            e.remove();
+          });
+      });
+    },
+  });
+
+});
+
+phina.namespace(function() {
 
   phina.define("glb.Fighter", {
     superClass: "glb.Obj",
 
+    hp: 0,
+    mutekiTime: 0,
+
     init: function(id, instanceData, instanceStride) {
       this.superInit(id, instanceData, instanceStride);
 
-      // this.isEnemy = true;
       this.roll = 0;
 
       this.on("enterframe", function(e) {
         var app = e.app;
         this.move(app);
       });
+    },
+
+    update: function(app) {
+      var index = this.index;
+      var instanceData = this.instanceData;
+
+      if (this.dirty) {
+        quat.mul(tempQuat, RX, this.quaternion);
+        mat4.fromRotationTranslationScale(this.matrix, tempQuat, this.position, this.scale);
+
+        instanceData[index + 1] = this.matrix[0];
+        instanceData[index + 2] = this.matrix[1];
+        instanceData[index + 3] = this.matrix[2];
+        instanceData[index + 4] = this.matrix[4];
+        instanceData[index + 5] = this.matrix[5];
+        instanceData[index + 6] = this.matrix[6];
+        instanceData[index + 7] = this.matrix[8];
+        instanceData[index + 8] = this.matrix[9];
+        instanceData[index + 9] = this.matrix[10];
+        instanceData[index + 10] = this.matrix[12];
+        instanceData[index + 11] = this.matrix[13];
+        instanceData[index + 12] = this.matrix[14];
+        this.dirty = false;
+      }
+
+      this.age += 1;
+      this.mutekiTime -= 1;
     },
 
     move: function(app) {
@@ -304,7 +744,20 @@ phina.namespace(function() {
       quat.rotateX(this.quaternion, this.quaternion, this.roll);
     },
 
+    damage: function(v) {
+      if (this.mutekiTime > 0) {
+        this.hp -= v;
+        this.mutekiTime = 180;
+        this.flare("damaged");
+      }
+    },
+
   });
+
+  var BASE_QUAT = quat.rotateZ(quat.create(), quat.create(), (-90).toRadian());
+  var RX = quat.setAxisAngle(quat.create(), [1, 0, 0], (10).toRadian());
+  var tempQuat = quat.create();
+
 });
 
 phina.namespace(function() {
@@ -398,6 +851,7 @@ phina.namespace(function() {
       this.ppBlur = glb.PostProcessing(gl, cw, ch, "effect_blur");
 
       this.setupTerrain();
+      this.generateObjects();
       this.ready = true;
     },
 
@@ -433,6 +887,12 @@ phina.namespace(function() {
       });
     },
 
+    generateObjects: function() {
+      this.playerDrawer.addObjType("fighter", 1, "glb.Fighter");
+      this.spriteDrawer.addObjType("shot", 100, "glb.Shot");
+      this.spriteDrawer.addObjType("effect", 500);
+    },
+
     update: function(app) {
       if (!this.ready) return;
 
@@ -462,10 +922,8 @@ phina.namespace(function() {
       this.framebufferGlowBlur1.bind();
       gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.ppCopy.render(this.framebufferGlowBlur2.texture, { alpha: 0.7 }, true);
-      for (var i = 0; i < 3; i++) {
-        this.ppBlur.render(this.framebufferGlow.texture, null, true);
-      }
+      this.ppCopy.render(this.framebufferGlowBlur2.texture, { alpha: 0.8 }, true);
+      this.ppBlur.render(this.framebufferGlow.texture, null, true);
       gl.flush();
 
       this.framebufferMain.bind();
@@ -783,9 +1241,6 @@ phina.namespace(function() {
 
 phina.namespace(function() {
 
-  var rx = quat.setAxisAngle(quat.create(), [1, 0, 0], (30).toRadian());
-  var tq = quat.create();
-
   phina.define("glb.Obj", {
     superClass: "phina.app.Element",
 
@@ -853,12 +1308,7 @@ phina.namespace(function() {
       var instanceData = this.instanceData;
 
       if (this.dirty) {
-        if (this.isEnemy) {
-          quat.mul(tq, rx, this.quaternion);
-          mat4.fromRotationTranslationScale(this.matrix, tq, this.position, this.scale);
-        } else {
-          mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale);
-        }
+        mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale);
 
         instanceData[index + 1] = this.matrix[0];
         instanceData[index + 2] = this.matrix[1];
@@ -1320,27 +1770,10 @@ phina.namespace(function() {
 });
 
 phina.namespace(function() {
-
-  phina.define("glb.ScorePanel", {
-    superClass: "phina.display.DisplayElement",
-
-    init: function() {
-      this.superInit();
-      this.fromJSON({
-        originX: 0,
-        originY: 0,
-        children: {
-          
-        },
-      });
-    },
-  });
-
-});
-
-phina.namespace(function() {
   phina.define("glb.Shot", {
     superClass: "glb.Sprite",
+
+    _active: false,
 
     init: function(id, instanceData, instanceStride) {
       this.superInit(id, instanceData, instanceStride);
@@ -1352,10 +1785,26 @@ phina.namespace(function() {
       return glb.Sprite.prototype.spawn.call(this, options);
     },
 
+    activate: function() {
+      this._active = true;
+      this.flare("activated");
+      return this;
+    },
+
+    inactivate: function() {
+      this._active = false;
+      this.flare("inactivated");
+      return this;
+    },
+
     update: function(app) {
       this.x += this.dx;
       this.y += this.dy;
       glb.Sprite.prototype.update.call(this, app);
+    },
+
+    hitEnemy: function(e) {
+      // TODO
     },
 
   });

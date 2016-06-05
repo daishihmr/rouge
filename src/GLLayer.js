@@ -89,6 +89,7 @@ phina.namespace(function() {
       this.ppBlur = glb.PostProcessing(gl, cw, ch, "effect_blur");
 
       this.setupTerrain();
+      this.generateObjects();
       this.ready = true;
     },
 
@@ -124,6 +125,12 @@ phina.namespace(function() {
       });
     },
 
+    generateObjects: function() {
+      this.playerDrawer.addObjType("fighter", 1, "glb.Fighter");
+      this.spriteDrawer.addObjType("shot", 100, "glb.Shot");
+      this.spriteDrawer.addObjType("effect", 500);
+    },
+
     update: function(app) {
       if (!this.ready) return;
 
@@ -153,10 +160,8 @@ phina.namespace(function() {
       this.framebufferGlowBlur1.bind();
       gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.ppCopy.render(this.framebufferGlowBlur2.texture, { alpha: 0.7 }, true);
-      for (var i = 0; i < 3; i++) {
-        this.ppBlur.render(this.framebufferGlow.texture, null, true);
-      }
+      this.ppCopy.render(this.framebufferGlowBlur2.texture, { alpha: 0.8 }, true);
+      this.ppBlur.render(this.framebufferGlow.texture, null, true);
       gl.flush();
 
       this.framebufferMain.bind();

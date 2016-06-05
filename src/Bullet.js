@@ -11,6 +11,10 @@ phina.namespace(function() {
     y: 0,
     age: 0,
 
+    power: 0,
+
+    _active: false,
+
     init: function(id, instanceData, instanceStride) {
       this.superInit();
       this.id = id;
@@ -46,7 +50,19 @@ phina.namespace(function() {
 
       return this;
     },
-    
+
+    activate: function() {
+      this._active = true;
+      this.flare("activated");
+      return this;
+    },
+
+    inactivate: function() {
+      this._active = false;
+      this.flare("inactivated");
+      return this;
+    },
+
     onremoved: function() {
       this.instanceData[this.index + 6] = 0;
     },
