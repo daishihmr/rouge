@@ -22,6 +22,9 @@ var sourceFiles = function(folder) {
 
   var srcs = scan(folder).flatten();
 
+  srcs.erase("./src/main.js");
+  srcs.unshift("./src/main.js");
+
   return srcs;
 };
 

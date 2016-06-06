@@ -9,6 +9,7 @@
   "author": "daishihmr <daishi.hmr@gmail.com> (http://github.dev7.jp/)",
   "license": "MIT",
   "devDependencies": {
+    "aws-sdk": "^2.3.17",
     "gulp": "^3.9.1",
     "gulp-concat": "^2.6.0",
     "gulp-rename": "^1.2.2",
@@ -16,6 +17,7 @@
     "gulp-uglify": "^1.5.3",
     "gulp-watch": "^4.3.5",
     "high": "0.0.4",
+    "mime-types": "^2.1.11",
     "node-fs-extra": "^0.8.1"
   }
 }

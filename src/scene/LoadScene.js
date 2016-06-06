@@ -3,13 +3,14 @@ phina.namespace(function() {
   phina.define("glb.LoadScene", {
     superClass: "phina.display.DisplayScene",
 
-    init: function(gl) {
+    init: function(options) {
       this.superInit({
         width: SCREEN_WIDTH,
         height: SCREEN_HEIGHT,
-        backgroundColor: "white",
+        backgroundColor: "black",
       });
-      this.gl = gl;
+      this.gl = options.gl;
+      this.assetType = options.assetType;
       this.totalCount = 0;
       this.count = 0;
 
@@ -17,16 +18,16 @@ phina.namespace(function() {
         children: {
           label: {
             className: "phina.display.Label",
-            arguments: "ロード中",
+            arguments: "loading",
             x: SCREEN_WIDTH / 2,
             y: SCREEN_HEIGHT / 2,
-            fill: "black",
+            fill: "white",
             stroke: null,
           },
         }
       });
 
-      this.tweener.wait(2).call(function() {
+      this.tweener.wait(66).call(function() {
         this.load();
       }.bind(this));
     },
@@ -35,7 +36,6 @@ phina.namespace(function() {
       this.count += 1;
 
       // TODO
-      console.log(this.count + "/" + this.totalCount);
       this.label.text = this.count + "/" + this.totalCount;
     },
 
@@ -51,7 +51,7 @@ phina.namespace(function() {
       this.totalCount =
         Object.keys(manager.assets["vertexShader"]).length +
         Object.keys(manager.assets["obj"]).length +
-        Object.keys(manager.assets["image"]).length;
+        Object.keys(manager.assets["textureSource"]).length;
 
       var flows = [];
 
@@ -66,7 +66,6 @@ phina.namespace(function() {
           manager.set("shader", name, shader);
 
           self.flare("progress");
-          console.log("shader", name);
           resolve();
         });
 
@@ -90,15 +89,13 @@ phina.namespace(function() {
 
           self.flare("progress");
 
-          console.log("vbo", key);
           resolve();
         });
 
         flows.push(flow);
-
       });
 
-      manager.assets["image"].forIn(function(key, image) {
+      manager.assets["textureSource"].forIn(function(key, image) {
         var flow = phina.util.Flow(function(resolve) {
           var texture = phigl.Texture(gl, image);
 
@@ -106,39 +103,62 @@ phina.namespace(function() {
 
           self.flare("progress");
 
-          console.log("texture", key);
           resolve();
         });
 
         flows.push(flow);
-
       });
 
       phina.util.Flow.all(flows).then(function() {
-        console.log("complete");
         self.flare("complete");
       });
 
       return this;
     },
 
-    deleteAll: function() {
-      var manager = phina.asset.AssetManager;
-      manager.assets.vbo.forIn(function(key, vbo) {
-        vbo.delete();
-      });
-      manager.assets.ibo.forIn(function(key, ibo) {
-        ibo.delete();
-      });
-      manager.assets.texture.forIn(function(key, texture) {
-        texture.delete();
-      });
+    _static: {
+      deleteAssets: function(assetType) {
+        var assets = glb.Assets.get(assetType);
+        var manager = phina.asset.AssetManager;
 
-      manager.assets.vbo = {};
-      manager.assets.ibo = {};
-      manager.assets.texture = {};
+        if (assets["obj"]) {
+          assets["obj"].forIn(function(key) {
+            if (manager.get("vbo", key)) {
+              manager.get("vbo", key).delete();
+              delete manager.assets["vbo"][key];
+            }
+            if (manager.get("ibo", key)) {
+              manager.get("ibo", key).delete();
+              delete manager.assets["ibo"][key];
+            }
+            if (manager.get("edgesVbo", key)) {
+              manager.get("edgesVbo", key).delete();
+              delete manager.assets["edgesVbo"][key];
+            }
+            if (manager.get("edgesIbo", key)) {
+              manager.get("edgesIbo", key).delete();
+              delete manager.assets["edgesIbo"][key];
+            }
 
-      return this;
+            if (manager.assets["obj"]) {
+              delete manager.assets["obj"][key];
+            }
+          });
+        }
+
+        if (assets["textureSource"]) {
+          assets["textureSource"].forIn(function(key, obj) {
+            if (manager.get("texture", key)) {
+              manager.get("texture", key).delete();
+              delete manager.assets["texture"][key];
+            }
+
+            if (manager.assets["textureSource"]) {
+              delete manager.assets["textureSource"][key];
+            }
+          });
+        }
+      },
     },
   });
 

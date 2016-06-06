@@ -56,7 +56,7 @@ phina.namespace(function() {
 
       var instanceUnit = this.instanceStride / 4;
 
-      this.uniforms.texture.setValue(0).setTexture(phigl.Texture(gl, "bullets.png"));
+      this.uniforms.texture.setValue(0).setTexture(phina.asset.AssetManager.get("texture", "bullets.png"));
       this.uniforms.globalScale.setValue(1.0);
 
       var instanceData = this.instanceData = [];
@@ -81,17 +81,20 @@ phina.namespace(function() {
       this.setInstanceAttributeData(instanceData);
 
       var self = this;
-      this.pool = Array.range(0, this._count).map(function(id) {
-        return glb.Bullet(id, instanceData, instanceUnit)
-          .on("removed", function() {
-            self.pool.push(this);
-          });
-      });
+      this.pool = Array.range(0, this._count)
+        .map(function(id) {
+          return glb.Bullet(id, instanceData, instanceUnit)
+            .on("removed", function() {
+              self.pool.add(this);
+            });
+        })
+        .toPool(function(lhs, rhs) {
+          return lhs.id - rhs.id;
+        });
     },
 
     get: function() {
-      var b = this.pool.shift();
-      return b;
+      return this.pool.get();
     },
 
     update: function(app) {

@@ -14,6 +14,8 @@ phina.namespace(function() {
     power: 0,
 
     _active: false,
+    
+    radius: 20,
 
     init: function(id, instanceData, instanceStride) {
       this.superInit();
@@ -34,7 +36,7 @@ phina.namespace(function() {
       instanceData[index + 0] = this.x;
       instanceData[index + 1] = this.y;
       instanceData[index + 2] = runner.direction; // rotation
-      instanceData[index + 3] = 1.5; // scale
+      instanceData[index + 3] = 1.8; // scale
       instanceData[index + 4] = option.type % 8; // frame.x
       instanceData[index + 5] = ~~(option.type / 8); // frame.y
       instanceData[index + 6] = 1; // visible
@@ -86,6 +88,11 @@ phina.namespace(function() {
       instanceData[index + 7] = 1.5 + Math.sin(this.age * 0.2) * 0.6;
 
       this.age += 1;
+    },
+
+    hitPlayer: function(player) {
+      // TODO
+      this.remove();
     },
   });
 

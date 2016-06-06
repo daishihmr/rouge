@@ -3,13 +3,24 @@ phina.namespace(function() {
   phina.define("glb.Enemy", {
     superClass: "glb.Obj",
 
+    _static: {
+      data: {},
+    },
+
     _active: false,
 
-    hp: 0,
+    hp: 10,
     mutekiTime: 0,
+    runner: null,
+    pattern: 0,
+
+    radius: 50,
 
     init: function(id, instanceData, instanceStride) {
       this.superInit(id, instanceData, instanceStride);
+      this.on("removed", function() {
+        this.runner = null;
+      });
     },
 
     activate: function() {
@@ -32,6 +43,7 @@ phina.namespace(function() {
         quat.mul(tempQuat, RX, this.quaternion);
         mat4.fromRotationTranslationScale(this.matrix, tempQuat, this.position, this.scale);
 
+        instanceData[index + 0] = this.visible ? 1 : 0;
         instanceData[index + 1] = this.matrix[0];
         instanceData[index + 2] = this.matrix[1];
         instanceData[index + 3] = this.matrix[2];
@@ -47,21 +59,42 @@ phina.namespace(function() {
         this.dirty = false;
       }
 
+      if (this.runner) {
+        this.runner.x = this.x;
+        this.runner.y = this.y;
+        this.runner.update();
+      }
+
       this.age += 1;
       this.mutekiTime -= 1;
     },
 
-    damage: function(d) {
+    hitShot: function(shot) {
+      // TODO
       if (this.mutekiTime > 0) {
-        this.hp -= v;
+        this.hp -= shot.power;
         this.mutekiTime = 1;
         this.flare("damaged");
       }
     },
 
+    hitPlayer: function(player) {
+      // TODO
+    },
+
+    setRunner: function(name) {
+      this.runner = glb.Danmaku.createRunner(name);
+      return this;
+    },
+
+    setPattern: function(id) {
+      this.pattern = id;
+      return this;
+    },
+
   });
 
-  var RX = quat.setAxisAngle(quat.create(), [1, 0, 0], (30).toRadian());
+  var RX = quat.setAxisAngle(quat.create(), [1, 0, 0], (45).toRadian());
   var tempQuat = quat.create();
 
 });

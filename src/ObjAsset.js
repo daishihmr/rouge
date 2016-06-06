@@ -42,7 +42,6 @@ phina.namespace(function() {
       groupName = groupName || "defaultGroup";
 
       var obj = globj.ObjParser.parse(this.data)[objectName].groups[groupName];
-      var hashes = [];
       var result = [];
 
       return obj.faces
@@ -75,14 +74,6 @@ phina.namespace(function() {
     return shader.load({
       path: path,
     });
-  };
-
-  var hash = function(p0, p1) {
-    var result = 1;
-    var prime = 2411;
-    result = prime * result + p0;
-    result = prime * result + p1;
-    return "" + result;
   };
 
 });

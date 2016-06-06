@@ -150,8 +150,8 @@ phina.namespace(function() {
       var self = this;
       var gl = this.gl;
       gl.enable(gl.BLEND);
-      gl.enable(gl.DEPTH_TEST);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.disable(gl.DEPTH_TEST);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
       if (uniforms) {
         uniforms.forIn(function(key, value) {

@@ -13,7 +13,7 @@ void main(void){
   vec4 tc = texture2D(texture, vUv + vFrame * unit);
 
   vec4 aura = vec4(vInstanceAuraColor, 0.0);
-  aura.a = (0.55 - length(vUv / unit - vec2(0.5))) * 1.5;
+  aura.a = (0.55 - length(vUv / unit - vec2(0.5))) * 0.8;
 
   if (aura.a > tc.a) {
     gl_FragColor = aura;

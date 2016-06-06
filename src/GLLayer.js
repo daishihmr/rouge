@@ -29,7 +29,7 @@ phina.namespace(function() {
     zoomStrength: 0,
     zoomAlpha: 0,
 
-    init: function() {
+    init: function(options) {
       this.superInit({
         width: SCREEN_WIDTH,
         height: SCREEN_HEIGHT,
@@ -37,19 +37,17 @@ phina.namespace(function() {
       this.originX = 0;
       this.originY = 0;
 
-      this.domElement = document.createElement("canvas");
+      this.domElement = options.canvas;
       this.domElement.width = this.width * glb.GLLayer.quality;
       this.domElement.height = this.height * glb.GLLayer.quality;
 
-      this.gl = this.domElement.getContext("webgl");
-      this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
-      this.gl.clearDepth(1.0);
-    },
-
-    start: function() {
-      var gl = this.gl;
+      var gl = this.gl = options.gl;
       var extInstancedArrays = phigl.Extensions.getInstancedArrays(gl);
       var extVertexArrayObject = phigl.Extensions.getVertexArrayObject(gl);
+
+      this.gl.viewport(0, 0, this.domElement.width, this.domElement.height);
+      this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      this.gl.clearDepth(1.0);
 
       var cw = this.domElement.width;
       var ch = this.domElement.height;
@@ -79,14 +77,14 @@ phina.namespace(function() {
       this.bulletDrawer = glb.BulletSprites(gl, extInstancedArrays, w, h);
 
       this.framebufferGlow = phigl.Framebuffer(gl, sw, sh);
-      this.framebufferGlowBlur1 = phigl.Framebuffer(gl, sw, sh);
-      this.framebufferGlowBlur2 = phigl.Framebuffer(gl, sw, sh);
+      this.framebufferZanzo1 = phigl.Framebuffer(gl, sw, sh);
+      this.framebufferZanzo2 = phigl.Framebuffer(gl, sw, sh);
       this.framebufferMain = phigl.Framebuffer(gl, sw, sh);
       this.framebufferZoom = phigl.Framebuffer(gl, sw, sh);
 
-      this.ppZoom = glb.PostProcessing(gl, cw, ch, "effect_zoom", ["canvasSize", "center", "strength"]);
-      this.ppCopy = glb.PostProcessing(gl, cw, ch, "effect_copy", ["alpha"]);
-      this.ppBlur = glb.PostProcessing(gl, cw, ch, "effect_blur");
+      this.ppZoom = glb.PostProcessing(gl, cw, ch, "postproccess_zoom", ["canvasSize", "center", "strength"]);
+      this.ppCopy = glb.PostProcessing(gl, cw, ch, "postproccess_copy", ["alpha"]);
+      this.ppBlur = glb.PostProcessing(gl, cw, ch, "postproccess_blur");
 
       this.setupTerrain();
       this.generateObjects();
@@ -127,8 +125,9 @@ phina.namespace(function() {
 
     generateObjects: function() {
       this.playerDrawer.addObjType("fighter", 1, "glb.Fighter");
-      this.spriteDrawer.addObjType("shot", 100, "glb.Shot");
-      this.spriteDrawer.addObjType("effect", 500);
+      this.playerDrawer.addObjType("barrier", 1);
+      this.spriteDrawer.addObjType("shot", 20, "glb.Shot");
+      this.spriteDrawer.addObjType("effect", 300);
     },
 
     update: function(app) {
@@ -150,49 +149,43 @@ phina.namespace(function() {
       var cw = image.width;
       var ch = image.height;
 
-      this.framebufferGlow.bind();
-      gl.viewport(0, 0, cw, ch);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.enemyDrawer.renderGlow(this.orthoCamera.uniformValues());
-      this.playerDrawer.renderGlow(this.orthoCamera.uniformValues());
-      gl.flush();
+      var ou = this.orthoCamera.uniformValues();
+      var pu = this.perseCamera.uniformValues();
 
-      this.framebufferGlowBlur1.bind();
-      gl.viewport(0, 0, cw, ch);
+      this.framebufferGlow.bind();
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.ppCopy.render(this.framebufferGlowBlur2.texture, { alpha: 0.8 }, true);
+      this.enemyDrawer.renderGlow(ou);
+      this.playerDrawer.renderGlow(ou);
+
+      this.framebufferZanzo1.bind();
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      this.ppCopy.render(this.framebufferZanzo2.texture, { alpha: 0.85 }, true);
       this.ppBlur.render(this.framebufferGlow.texture, null, true);
-      gl.flush();
 
       this.framebufferMain.bind();
-      gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.terrain.render({
         diffuseColor: [0.12, 0.12, 0.12 * 2.6, 0.75],
-      }.$extend(this.perseCamera.uniformValues()));
-      this.itemDrawer.render(this.orthoCamera.uniformValues());
+      }.$extend(pu));
+      this.itemDrawer.render(ou);
       this.enemyDrawer.render({
         diffuseColor: [1.0, 1.0, 1.0, 1.0],
-      }.$extend(this.orthoCamera.uniformValues()));
-      this.spriteDrawer.render(this.orthoCamera.uniformValues());
-      this.playerDrawer.render(this.orthoCamera.uniformValues());
-      this.ppCopy.render(this.framebufferGlowBlur1.texture, null, true);
-      this.bulletDrawer.render(this.orthoCamera.uniformValues());
-      gl.flush();
+      }.$extend(ou));
+      this.spriteDrawer.render(ou);
+      this.playerDrawer.render(ou);
+      this.ppCopy.render(this.framebufferZanzo1.texture, null, true);
+      this.bulletDrawer.render(ou);
 
       if (this.zoomStrength > 0 && this.zoomAlpha > 0) {
         this.framebufferZoom.bind();
-        gl.viewport(0, 0, cw, ch);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         this.ppZoom.render(this.framebufferMain.texture, {
           center: this.ppZoom.viewCoordToShaderCoord(this.zoomCenterX, this.zoomCenterY),
           strength: this.zoomStrength,
         });
-        gl.flush();
       }
 
       phigl.Framebuffer.unbind(gl);
-      gl.viewport(0, 0, cw, ch);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.ppCopy.render(this.framebufferMain.texture, {
         alpha: 1.0 - this.zoomAlpha,
@@ -202,13 +195,14 @@ phina.namespace(function() {
           alpha: this.zoomAlpha,
         }, true);
       }
+
       gl.flush();
 
       canvas.context.drawImage(image, 0, 0, cw, ch, -this.width * this.originX, -this.height * this.originY, this.width, this.height);
 
-      var temp = this.framebufferGlowBlur1;
-      this.framebufferGlowBlur1 = this.framebufferGlowBlur2;
-      this.framebufferGlowBlur2 = temp;
+      var temp = this.framebufferZanzo1;
+      this.framebufferZanzo1 = this.framebufferZanzo2;
+      this.framebufferZanzo2 = temp;
     },
 
     startZoom: function(x, y) {
@@ -222,7 +216,7 @@ phina.namespace(function() {
         .to({
           zoomStrength: 10,
           zoomAlpha: 0,
-        }, 20, "easeOutQuad");
+        }, 666, "easeOutQuad");
     },
 
     _static: {

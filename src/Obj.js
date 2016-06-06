@@ -6,6 +6,7 @@ phina.namespace(function() {
     id: -1,
     instanceData: null,
 
+    visible: false,
     position: null,
     quaternion: null,
     scale: null,
@@ -27,6 +28,7 @@ phina.namespace(function() {
 
     spawn: function(options) {
       options = {}.$extend({
+        visible: true,
         x: 0,
         y: 0,
         z: 0,
@@ -37,11 +39,12 @@ phina.namespace(function() {
         scaleY: OBJ_SCALE,
         scaleZ: OBJ_SCALE,
       }, options);
-      
+
       var index = this.index;
       var instanceData = this.instanceData;
       this.age = 0;
 
+      this.visible = options.visible;
       this.x = options.x;
       this.y = options.y;
       this.z = options.z;
@@ -54,14 +57,12 @@ phina.namespace(function() {
       quat.rotateY(this.quaternion, this.quaternion, options.rotY);
       quat.rotateX(this.quaternion, this.quaternion, options.rotX);
 
-      instanceData[index + 0] = 1;
-
       this.dirty = true;
       this.update();
 
       return this;
     },
-    
+
     update: function(app) {
       var index = this.index;
       var instanceData = this.instanceData;
@@ -69,6 +70,7 @@ phina.namespace(function() {
       if (this.dirty) {
         mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale);
 
+        instanceData[index + 0] = this.visible ? 1 : 0;
         instanceData[index + 1] = this.matrix[0];
         instanceData[index + 2] = this.matrix[1];
         instanceData[index + 3] = this.matrix[2];

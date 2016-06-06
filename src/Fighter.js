@@ -3,8 +3,12 @@ phina.namespace(function() {
   phina.define("glb.Fighter", {
     superClass: "glb.Obj",
 
-    hp: 0,
+    hp: 10,
+    muteki: false,
     mutekiTime: 0,
+    controllable: false,
+
+    glLayer: null,
 
     init: function(id, instanceData, instanceStride) {
       this.superInit(id, instanceData, instanceStride);
@@ -13,8 +17,51 @@ phina.namespace(function() {
 
       this.on("enterframe", function(e) {
         var app = e.app;
-        this.move(app);
+        this.control(app);
       });
+    },
+
+    spawn: function(glLayer) {
+      this.glLayer = glLayer;
+
+      glb.Obj.prototype.spawn.call(this, {
+        visible: false,
+        x: SCREEN_WIDTH * 0.5,
+        y: SCREEN_HEIGHT * 1.2,
+        rotZ: (-90).toRadian(),
+        scaleX: 20,
+        scaleY: 20,
+        scaleZ: 20,
+      });
+
+      return this;
+    },
+
+    launch: function() {
+      this.tweener
+        .clear()
+        .set({
+          x: SCREEN_WIDTH * 0.5,
+          y: SCREEN_HEIGHT * 1.2,
+          visible: true,
+          muteki: true,
+          controllable: false,
+        })
+        .to({
+          y: SCREEN_HEIGHT * 0.9,
+        }, 1000, "easeOutBack")
+        .set({
+          controllable: true,
+        })
+        .wait(3000)
+        .set({
+          muteki: false,
+        });
+    },
+
+    setBarrier: function(barrier) {
+      this.barrier = barrier;
+      return this;
     },
 
     update: function(app) {
@@ -25,6 +72,7 @@ phina.namespace(function() {
         quat.mul(tempQuat, RX, this.quaternion);
         mat4.fromRotationTranslationScale(this.matrix, tempQuat, this.position, this.scale);
 
+        instanceData[index + 0] = this.visible ? 1 : 0;
         instanceData[index + 1] = this.matrix[0];
         instanceData[index + 2] = this.matrix[1];
         instanceData[index + 3] = this.matrix[2];
@@ -42,14 +90,27 @@ phina.namespace(function() {
 
       this.age += 1;
       this.mutekiTime -= 1;
+
+      var barrier = this.barrier;
+      if (barrier) {
+        barrier.visible = this.muteki;
+        barrier.x = this.x;
+        barrier.y = this.y;
+        barrier.rotateX(0.5);
+      }
     },
 
-    move: function(app) {
+    control: function(app) {
+      if (!this.controllable) return;
+
+      var frame = app.ticker.frame;
       var kb = app.keyboard;
       var dir = kb.getKeyDirection();
+      
+      var speed = kb.getKey("shift") ? 14 : 22;
 
-      this.x = Math.clamp(this.x + dir.x * 22, 0, SCREEN_WIDTH - 0);
-      this.y = Math.clamp(this.y + dir.y * 22, 0, SCREEN_HEIGHT - 0);
+      this.x = Math.clamp(this.x + dir.x * speed, 10, SCREEN_WIDTH - 10);
+      this.y = Math.clamp(this.y + dir.y * speed, 10, SCREEN_HEIGHT - 10);
 
       if (dir.x) {
         this.roll = Math.clamp(this.roll - dir.x * 0.2, (-90).toRadian(), (90).toRadian());
@@ -62,16 +123,43 @@ phina.namespace(function() {
           this.roll = 0;
         }
       }
-
       quat.copy(this.quaternion, BASE_QUAT);
       quat.rotateX(this.quaternion, this.quaternion, this.roll);
+
+      if (kb.getKey("z") && frame % 2 === 0) {
+        this.shot();
+      }
     },
 
-    damage: function(v) {
-      if (this.mutekiTime > 0) {
-        this.hp -= v;
-        this.mutekiTime = 180;
-        this.flare("damaged");
+    hitBullet: function(bullet) {
+      // TODO
+    },
+
+    hitEnemy: function(enemy) {
+      // TODO
+    },
+
+    shot: function() {
+      var glLayer = this.glLayer;
+
+      for (var i = 0; i < 2; i++) {
+        var shot = glLayer.spriteDrawer.get("shot");
+        if (shot) {
+          shot
+            .spawn({
+              x: this.x + -15 + i * 30,
+              y: this.y - 20,
+              rotation: Math.PI * -0.5,
+              scale: 2,
+              frameX: 0,
+              frameY: 1,
+              alpha: 0.5,
+              dx: 0,
+              dy: -60,
+            })
+            .addChildTo(glLayer);
+          this.flare("fireShot", { shot: shot });
+        }
       }
     },
 

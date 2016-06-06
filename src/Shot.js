@@ -1,6 +1,8 @@
 phina.namespace(function() {
   phina.define("glb.Shot", {
     superClass: "glb.Sprite",
+    
+    power: 0,
 
     _active: false,
 
@@ -34,6 +36,8 @@ phina.namespace(function() {
 
     hitEnemy: function(e) {
       // TODO
+      this.flare("hitEnemy");
+      this.remove();
     },
 
   });

@@ -7,15 +7,48 @@ phina.namespace(function() {
     init: function(glLayer) {
       this.glLayer = glLayer;
     },
+    
+    spark: function(x, y) {
+      var glLayer = this.glLayer;
+      
+      (1).times(function() {
+        var e = glLayer.spriteDrawer.get("effect");
+
+        if (!e) return;
+        var a = Math.randfloat(0, Math.PI * 2);
+        var r = Math.randfloat(75, 125);
+        e
+          .spawn({
+            x: x + Math.cos(a) * r * 0.1,
+            y: y + Math.sin(a) * r * 0.1,
+            rotation: 0,
+            scale: Math.randfloat(0.1, 0.2),
+            alpha: 5,
+          })
+          .addChildTo(glLayer);
+
+        e.tweener
+          .clear()
+          .to({
+            x: x + Math.cos(a) * r,
+            y: y + Math.sin(a) * r,
+            alpha: 0,
+          }, 666, "easeOutQuart")
+          .call(function() {
+            e.remove();
+          });
+      });
+    },
 
     small: function(x, y) {
       var glLayer = this.glLayer;
 
       (10).times(function() {
-        var a = Math.randfloat(0, Math.PI * 2);
-        var r = Math.randfloat(30, 45);
         var e = glLayer.spriteDrawer.get("effect");
         if (!e) return;
+
+        var a = Math.randfloat(0, Math.PI * 2);
+        var r = Math.randfloat(30, 45);
         e
           .spawn({
             x: x + Math.cos(a) * r * 0.2,
@@ -24,25 +57,27 @@ phina.namespace(function() {
             scale: 1,
             alpha: 3,
           })
-          .addChildTo(glLayer)
-          .tweener
+          .addChildTo(glLayer);
+
+        e.tweener
           .clear()
           .to({
             x: x + Math.cos(a) * r,
             y: y + Math.sin(a) * r,
             scale: 3,
             alpha: 0,
-          }, 10, "easeOutQuad")
+          }, 333, "easeOutQuad")
           .call(function() {
             e.remove();
           });
       });
 
       (7).times(function() {
+        var e = glLayer.spriteDrawer.get("effect");
+
+        if (!e) return;
         var a = Math.randfloat(0, Math.PI * 2);
         var r = Math.randfloat(75, 125);
-        var e = glLayer.spriteDrawer.get("effect");
-        if (!e) return;
         e
           .spawn({
             x: x + Math.cos(a) * r * 0.1,
@@ -51,14 +86,15 @@ phina.namespace(function() {
             scale: Math.randfloat(0.2, 0.4),
             alpha: 5,
           })
-          .addChildTo(glLayer)
-          .tweener
+          .addChildTo(glLayer);
+
+        e.tweener
           .clear()
           .to({
             x: x + Math.cos(a) * r,
             y: y + Math.sin(a) * r,
             alpha: 0,
-          }, 20, "easeOutQuad")
+          }, 666, "easeOutQuad")
           .call(function() {
             e.remove();
           });
