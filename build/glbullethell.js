@@ -4,6 +4,13 @@ var OBJ_SCALE = 30.0;
 
 phina.namespace(function() {
 
+  phina.input.Keyboard.KEY_CODE["SHOT"] = phina.input.Keyboard.KEY_CODE["z"];
+  phina.input.Keyboard.KEY_CODE["BOMB"] = phina.input.Keyboard.KEY_CODE["x"];
+  phina.input.Keyboard.KEY_CODE["LASER"] = phina.input.Keyboard.KEY_CODE["c"];
+  phina.input.Gamepad.BUTTON_CODE["SHOT"] = phina.input.Gamepad.BUTTON_CODE["R2"];
+  phina.input.Gamepad.BUTTON_CODE["BOMB"] = phina.input.Gamepad.BUTTON_CODE["a"];
+  phina.input.Gamepad.BUTTON_CODE["LASER"] = phina.input.Gamepad.BUTTON_CODE["x"];
+
   var canvas = document.createElement("canvas");
   var gl = null;
   try {
@@ -22,7 +29,7 @@ phina.namespace(function() {
   });
 
   var start = function() {
-    phina.display.CanvasApp({
+    var app = phina.display.CanvasApp({
         width: SCREEN_WIDTH,
         height: SCREEN_HEIGHT,
         backgroundColor: "black",
@@ -31,6 +38,11 @@ phina.namespace(function() {
       .replaceScene(gl ? glb.SceneFlow({ canvas: canvas, gl: gl }) : glb.ErrorScene())
       .enableStats()
       .run();
+
+    app.gamepadManager = phina.input.GamepadManager();
+    app.update = function() {
+      this.gamepadManager.update();
+    };
   };
 
 });
@@ -206,78 +218,6 @@ phina.namespace(function() {
 
 phina.namespace(function() {
 
-  phina.define("glb.Assets", {
-    _static: {
-      get: function(options) {
-        var assets;
-
-        switch (options.assetType) {
-          case "common":
-            return {
-              obj: {
-                "fighter.obj": "./asset/obj/fighter.obj",
-                "hex.obj": "./asset/obj/hex.obj",
-                "barrier.obj": "./asset/obj/barrier.obj",
-              },
-              textureSource: {
-                "fighter.png": "./asset/image/fighter.png",
-                "shot.png": "./asset/image/shot.png",
-                "bullets.png": "./asset/image/bullets.png",
-                "effect.png": "./asset/image/effect.png",
-                "barrier.png": "./asset/image/barrier.png",
-              },
-              vertexShader: {
-                "bullets.vs": "./asset/shader/bullets.vs",
-                "sprites.vs": "./asset/shader/sprites.vs",
-                "terrain.vs": "./asset/shader/terrain.vs",
-                "terrainEdge.vs": "./asset/shader/terrainEdge.vs",
-                "obj.vs": "./asset/shader/obj.vs",
-                "objEdge.vs": "./asset/shader/objEdge.vs",
-                "objGlow.vs": "./asset/shader/objGlow.vs",
-                "postproccess_copy.vs": "./asset/shader/postproccess.vs",
-                "postproccess_blur.vs": "./asset/shader/postproccess.vs",
-                "postproccess_zoom.vs": "./asset/shader/postproccess.vs",
-              },
-              fragmentShader: {
-                "bullets.fs": "./asset/shader/bullets.fs",
-                "sprites.fs": "./asset/shader/sprites.fs",
-                "terrain.fs": "./asset/shader/terrain.fs",
-                "terrainEdge.fs": "./asset/shader/terrainEdge.fs",
-                "obj.fs": "./asset/shader/obj.fs",
-                "objEdge.fs": "./asset/shader/objEdge.fs",
-                "objGlow.fs": "./asset/shader/objGlow.fs",
-                "postproccess_copy.fs": "./asset/shader/postproccess_copy.fs",
-                "postproccess_blur.fs": "./asset/shader/postproccess_blur.fs",
-                "postproccess_zoom.fs": "./asset/shader/postproccess_zoom.fs",
-              },
-            };
-          case "stage1":
-            return {
-              obj: {
-                "enemyS1.obj": "./asset/obj/enemyS1.obj",
-                "enemyS2.obj": "./asset/obj/enemyS2.obj",
-                "enemyS3.obj": "./asset/obj/enemyS3.obj",
-                "enemyS4.obj": "./asset/obj/enemyS4.obj",
-              },
-              textureSource: {
-                "enemyS1.png": "./asset/image/enemyS1.png",
-                "enemyS2.png": "./asset/image/enemyS2.png",
-                "enemyS3.png": "./asset/image/enemyS3.png",
-                "enemyS4.png": "./asset/image/enemyS4.png",
-              },
-            };
-          default:
-            console.log(options.assetType);
-            throw "invalid assetType";
-        }
-      },
-    },
-  });
-
-});
-
-phina.namespace(function() {
-
   phina.define("glb.Bullet", {
     superClass: "phina.app.Element",
 
@@ -377,7 +317,7 @@ phina.namespace(function() {
 });
 
 phina.namespace(function() {
-  phina.define("glb.BulletSprites", {
+  phina.define("glb.BulletDrawer", {
     superClass: "phigl.InstancedDrawable",
 
     instanceData: null,
@@ -674,239 +614,20 @@ phina.namespace(function() {
 
 phina.namespace(function() {
 
-  phina.define("glb.Danmaku", {
-    init: function() {},
-    _static: {
-      _initialized: false,
-      config: {},
-      intervalRate: 1.0,
-      speedRate: 15.0,
+  phina.define("glb.EnemySpawner", {
+    superClass: "phina.app.Element",
 
-      createRunner: function(name) {
-        if (!this._initialized) this.initialize();
-        return this[name].createRunner(this.config);
-      },
+    init: function(options) {
+      this.superInit();
 
-      initialize: function() {
-        this._initialized = true;
-        
-        var R = bullet({ type: 2 });
+      this.name = options.name;
+      this.pattern = options.pattern;
+      this.runner = options.runner;
+      this.x = options.x;
+      this.y = options.y;
 
-        // 自機狙い単発
-        this.basic0 = new bulletml.Root({
-          top: action([
-            repeat(Infinity, [
-              interval(30),
-              fire(speed(1), R),
-            ]),
-          ]),
-        });
-
-        // 自機狙い５連発
-        this.basic1 = new bulletml.Root({
-          top: action([
-            repeat(Infinity, [
-              interval(30),
-              fire(speed(1), R),
-              repeat(4, [
-                interval(4),
-                fire(dseq(0), sseq(0), R),
-              ]),
-            ]),
-          ]),
-        });
-
-        // 自機狙い3way（広）
-        this.basic2 = new bulletml.Root({
-          top: action([
-            repeat(Infinity, [
-              interval(30),
-              fire(direction(-15), speed(1), R),
-              repeat(2, [
-                fire(dseq(15), speed(1), R),
-              ]),
-            ]),
-          ]),
-        });
-
-        // 自機狙い3way（狭）
-        this.basic3 = new bulletml.Root({
-          top: action([
-            repeat(Infinity, [
-              interval(30),
-              fire(direction(-8), speed(1), R),
-              repeat(2, [
-                fire(dseq(8), speed(1), R),
-              ]),
-            ]),
-          ]),
-        });
-
-        this.test = new bulletml.Root({
-          top: action([
-            repeat(Infinity, [
-              fire(dseq(1), speed(1), R),
-              repeat(90 - 1, [
-                fire(dseq(360 / 90), speed(1), R),
-              ]),
-              interval(5),
-            ]),
-          ]),
-        });
-      },
-    },
-  });
-
-  var action = bulletml.dsl.action;
-  var actionRef = bulletml.dsl.actionRef;
-  var bullet = bulletml.dsl.bullet;
-  var bulletRef = bulletml.dsl.bulletRef;
-  var fire = bulletml.dsl.fire;
-  var fireRef = bulletml.dsl.fireRef;
-  var changeDirection = bulletml.dsl.changeDirection;
-  var changeSpeed = bulletml.dsl.changeSpeed;
-  var accel = bulletml.dsl.accel;
-  var wait = bulletml.dsl.wait;
-  var vanish = bulletml.dsl.vanish;
-  var repeat = bulletml.dsl.repeat;
-  var bindVar = bulletml.dsl.bindVar;
-  var notify = bulletml.dsl.notify;
-  var direction = bulletml.dsl.direction;
-  var _speed = bulletml.dsl.speed;
-  var horizontal = bulletml.dsl.horizontal;
-  var vertical = bulletml.dsl.vertical;
-  var fireOption = bulletml.dsl.fireOption;
-  var offsetX = bulletml.dsl.offsetX;
-  var offsetY = bulletml.dsl.offsetY;
-  var autonomy = bulletml.dsl.autonomy;
-
-  var interval = function(v) {
-    return wait(Math.max(v * glb.Danmaku.intervalRate, 1));
-  };
-
-  var speed = function(v) {
-    return _speed(v * glb.Danmaku.speedRate);
-  };
-
-  var dseq = function(v) {
-    return direction(v, "sequence");
-  };
-  var sseq = function(v) {
-    return _speed(v, "sequence");
-  };
-
-});
-
-phina.namespace(function() {
-
-  phina.define("glb.Enemy", {
-    superClass: "glb.Obj",
-
-    _static: {
-      data: {},
-    },
-
-    _active: false,
-
-    hp: 10,
-    mutekiTime: 0,
-    runner: null,
-    pattern: 0,
-
-    radius: 50,
-
-    init: function(id, instanceData, instanceStride) {
-      this.superInit(id, instanceData, instanceStride);
-      this.on("removed", function() {
-        this.runner = null;
-      });
-    },
-
-    activate: function() {
-      this._active = true;
-      this.flare("activated");
-      return this;
-    },
-
-    inactivate: function() {
-      this._active = false;
-      this.flare("inactivated");
-      return this;
-    },
-
-    update: function(app) {
-      var index = this.index;
-      var instanceData = this.instanceData;
-
-      if (this.dirty) {
-        quat.mul(tempQuat, RX, this.quaternion);
-        mat4.fromRotationTranslationScale(this.matrix, tempQuat, this.position, this.scale);
-
-        instanceData[index + 0] = this.visible ? 1 : 0;
-        instanceData[index + 1] = this.matrix[0];
-        instanceData[index + 2] = this.matrix[1];
-        instanceData[index + 3] = this.matrix[2];
-        instanceData[index + 4] = this.matrix[4];
-        instanceData[index + 5] = this.matrix[5];
-        instanceData[index + 6] = this.matrix[6];
-        instanceData[index + 7] = this.matrix[8];
-        instanceData[index + 8] = this.matrix[9];
-        instanceData[index + 9] = this.matrix[10];
-        instanceData[index + 10] = this.matrix[12];
-        instanceData[index + 11] = this.matrix[13];
-        instanceData[index + 12] = this.matrix[14];
-        this.dirty = false;
-      }
-
-      if (this.runner) {
-        this.runner.x = this.x;
-        this.runner.y = this.y;
-        this.runner.update();
-      }
-
-      this.age += 1;
-      this.mutekiTime -= 1;
-    },
-
-    hitShot: function(shot) {
-      // TODO
-      if (this.mutekiTime > 0) {
-        this.hp -= shot.power;
-        this.mutekiTime = 1;
-        this.flare("damaged");
-      }
-    },
-
-    hitPlayer: function(player) {
       // TODO
     },
-
-    setRunner: function(name) {
-      this.runner = glb.Danmaku.createRunner(name);
-      return this;
-    },
-
-    setPattern: function(id) {
-      this.pattern = id;
-      return this;
-    },
-
-  });
-
-  var RX = quat.setAxisAngle(quat.create(), [1, 0, 0], (45).toRadian());
-  var tempQuat = quat.create();
-
-});
-
-phina.namespace(function() {
-
-  phina.define("glb.EnemyS1", {
-    superClass: "glb.Enemy",
-
-    init: function(id, instanceData, instanceStride) {
-      this.superInit(id, instanceData, instanceStride);
-    },
-
   });
 
 });
@@ -956,7 +677,7 @@ phina.namespace(function() {
     small: function(x, y) {
       var glLayer = this.glLayer;
 
-      (10).times(function() {
+      (7).times(function() {
         var e = glLayer.spriteDrawer.get("effect");
         if (!e) return;
 
@@ -985,7 +706,7 @@ phina.namespace(function() {
           });
       });
 
-      (7).times(function() {
+      (2).times(function() {
         var e = glLayer.spriteDrawer.get("effect");
 
         if (!e) return;
@@ -1014,179 +735,6 @@ phina.namespace(function() {
       });
     },
   });
-
-});
-
-phina.namespace(function() {
-
-  phina.define("glb.Fighter", {
-    superClass: "glb.Obj",
-
-    hp: 10,
-    muteki: false,
-    mutekiTime: 0,
-    controllable: false,
-
-    glLayer: null,
-
-    init: function(id, instanceData, instanceStride) {
-      this.superInit(id, instanceData, instanceStride);
-
-      this.roll = 0;
-
-      this.on("enterframe", function(e) {
-        var app = e.app;
-        this.control(app);
-      });
-    },
-
-    spawn: function(glLayer) {
-      this.glLayer = glLayer;
-
-      glb.Obj.prototype.spawn.call(this, {
-        visible: false,
-        x: SCREEN_WIDTH * 0.5,
-        y: SCREEN_HEIGHT * 1.2,
-        rotZ: (-90).toRadian(),
-        scaleX: 20,
-        scaleY: 20,
-        scaleZ: 20,
-      });
-
-      return this;
-    },
-
-    launch: function() {
-      this.tweener
-        .clear()
-        .set({
-          x: SCREEN_WIDTH * 0.5,
-          y: SCREEN_HEIGHT * 1.2,
-          visible: true,
-          muteki: true,
-          controllable: false,
-        })
-        .to({
-          y: SCREEN_HEIGHT * 0.9,
-        }, 1000, "easeOutBack")
-        .set({
-          controllable: true,
-        })
-        .wait(3000)
-        .set({
-          muteki: false,
-        });
-    },
-
-    setBarrier: function(barrier) {
-      this.barrier = barrier;
-      return this;
-    },
-
-    update: function(app) {
-      var index = this.index;
-      var instanceData = this.instanceData;
-
-      if (this.dirty) {
-        quat.mul(tempQuat, RX, this.quaternion);
-        mat4.fromRotationTranslationScale(this.matrix, tempQuat, this.position, this.scale);
-
-        instanceData[index + 0] = this.visible ? 1 : 0;
-        instanceData[index + 1] = this.matrix[0];
-        instanceData[index + 2] = this.matrix[1];
-        instanceData[index + 3] = this.matrix[2];
-        instanceData[index + 4] = this.matrix[4];
-        instanceData[index + 5] = this.matrix[5];
-        instanceData[index + 6] = this.matrix[6];
-        instanceData[index + 7] = this.matrix[8];
-        instanceData[index + 8] = this.matrix[9];
-        instanceData[index + 9] = this.matrix[10];
-        instanceData[index + 10] = this.matrix[12];
-        instanceData[index + 11] = this.matrix[13];
-        instanceData[index + 12] = this.matrix[14];
-        this.dirty = false;
-      }
-
-      this.age += 1;
-      this.mutekiTime -= 1;
-
-      var barrier = this.barrier;
-      if (barrier) {
-        barrier.visible = this.muteki;
-        barrier.x = this.x;
-        barrier.y = this.y;
-        barrier.rotateX(0.5);
-      }
-    },
-
-    control: function(app) {
-      if (!this.controllable) return;
-
-      var frame = app.ticker.frame;
-      var kb = app.keyboard;
-      var dir = kb.getKeyDirection();
-      
-      var speed = kb.getKey("shift") ? 14 : 22;
-
-      this.x = Math.clamp(this.x + dir.x * speed, 10, SCREEN_WIDTH - 10);
-      this.y = Math.clamp(this.y + dir.y * speed, 10, SCREEN_HEIGHT - 10);
-
-      if (dir.x) {
-        this.roll = Math.clamp(this.roll - dir.x * 0.2, (-90).toRadian(), (90).toRadian());
-      } else {
-        if (this.roll < -0.2) {
-          this.roll += 0.2;
-        } else if (0.2 < this.roll) {
-          this.roll -= 0.2;
-        } else {
-          this.roll = 0;
-        }
-      }
-      quat.copy(this.quaternion, BASE_QUAT);
-      quat.rotateX(this.quaternion, this.quaternion, this.roll);
-
-      if (kb.getKey("z") && frame % 2 === 0) {
-        this.shot();
-      }
-    },
-
-    hitBullet: function(bullet) {
-      // TODO
-    },
-
-    hitEnemy: function(enemy) {
-      // TODO
-    },
-
-    shot: function() {
-      var glLayer = this.glLayer;
-
-      for (var i = 0; i < 2; i++) {
-        var shot = glLayer.spriteDrawer.get("shot");
-        if (shot) {
-          shot
-            .spawn({
-              x: this.x + -15 + i * 30,
-              y: this.y - 20,
-              rotation: Math.PI * -0.5,
-              scale: 2,
-              frameX: 0,
-              frameY: 1,
-              alpha: 0.5,
-              dx: 0,
-              dy: -60,
-            })
-            .addChildTo(glLayer);
-          this.flare("fireShot", { shot: shot });
-        }
-      }
-    },
-
-  });
-
-  var BASE_QUAT = quat.rotateZ(quat.create(), quat.create(), (-90).toRadian());
-  var RX = quat.setAxisAngle(quat.create(), [1, 0, 0], (10).toRadian());
-  var tempQuat = quat.create();
 
 });
 
@@ -1250,9 +798,9 @@ phina.namespace(function() {
       var q = glb.GLLayer.quality;
 
       this.orthoCamera = glb.Camera()
-        .setPosition(w / 2, h * 0.5, w * 1.5)
-        .lookAt(w / 2, h / 2, 0)
-        .ortho(-w / 2, w / 2, h / 2, -h / 2, 0.1, 3000)
+        .setPosition(w * 0.5, h * 0.5, w * 1.5)
+        .lookAt(w * 0.5, h * 0.5, 0)
+        .ortho(-w * 0.5, w * 0.5, h * 0.5, -h * 0.5, 0.1, 3000)
         .calcVpMatrix();
 
       this.perseCamera = glb.Camera()
@@ -1266,7 +814,7 @@ phina.namespace(function() {
       this.spriteDrawer = glb.SpritDrawer(gl, extInstancedArrays, w, h);
       this.enemyDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
       this.playerDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
-      this.bulletDrawer = glb.BulletSprites(gl, extInstancedArrays, w, h);
+      this.bulletDrawer = glb.BulletDrawer(gl, extInstancedArrays, w, h);
 
       this.framebufferGlow = phigl.Framebuffer(gl, sw, sh);
       this.framebufferZanzo1 = phigl.Framebuffer(gl, sw, sh);
@@ -1316,10 +864,11 @@ phina.namespace(function() {
     },
 
     generateObjects: function() {
-      this.playerDrawer.addObjType("fighter", 1, "glb.Fighter");
+      this.playerDrawer.addObjType("fighter", 1, "glb.Player");
+      this.playerDrawer.addObjType("bit", 4);
       this.playerDrawer.addObjType("barrier", 1);
-      this.spriteDrawer.addObjType("shot", 20, "glb.Shot");
-      this.spriteDrawer.addObjType("effect", 300);
+      this.spriteDrawer.addObjType("shot", 160, "glb.Shot");
+      this.spriteDrawer.addObjType("effect", 3000);
     },
 
     update: function(app) {
@@ -1412,6 +961,7 @@ phina.namespace(function() {
     },
 
     _static: {
+      quality: 0.5,
       quality: 1.0,
     },
   });
@@ -1794,6 +1344,7 @@ phina.namespace(function() {
 
     counts: null,
     instanceData: null,
+    instanceVbo: null,
     ibos: null,
     vbos: null,
     textures: null,
@@ -1808,6 +1359,7 @@ phina.namespace(function() {
 
       this.counts = {};
       this.instanceData = {};
+      this.instanceVbo = {};
       this.ibos = {};
       this.vbos = {};
       this.textures = {};
@@ -1875,6 +1427,7 @@ phina.namespace(function() {
             0, 0, 0,
           ];
         }).flatten();
+        this.instanceVbo[objType] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW).set(instanceData);
         this.ibos[objType] = phina.asset.AssetManager.get("ibo", objType + ".obj");
         this.vbos[objType] = phina.asset.AssetManager.get("vbo", objType + ".obj");
         this.textures[objType] = phina.asset.AssetManager.get("texture", objType + ".png");
@@ -1919,16 +1472,23 @@ phina.namespace(function() {
       this.objTypes.forEach(function(objType) {
         var count = self.counts[objType];
         var instanceData = self.instanceData[objType];
+        var instanceVbo = self.instanceVbo[objType];
         var ibo = self.ibos[objType];
         var vbo = self.vbos[objType];
         var texture = self.textures[objType];
 
-        self.faceDrawer
-          .setIndexBuffer(ibo)
-          .setAttributeVbo(vbo)
-          .setInstanceAttributeData(instanceData);
-        self.faceDrawer.uniforms.texture.setValue(0).setTexture(texture);
-        self.faceDrawer.draw(count);
+        try {
+          instanceVbo.set(instanceData);
+          self.faceDrawer
+            .setIndexBuffer(ibo)
+            .setAttributeVbo(vbo)
+            .setInstanceAttributeVbo(instanceVbo);
+          self.faceDrawer.uniforms.texture.setValue(0).setTexture(texture);
+          self.faceDrawer.draw(count);
+        } catch (e) {
+          console.error("obj draw error", objType, instanceData.length);
+          throw e;
+        }
       });
     },
 
@@ -1948,20 +1508,330 @@ phina.namespace(function() {
       this.objTypes.forEach(function(objType) {
         var count = self.counts[objType];
         var instanceData = self.instanceData[objType];
+        var instanceVbo = self.instanceVbo[objType];
         var ibo = self.ibos[objType];
         var vbo = self.vbos[objType];
         var texture = self.textures[objType];
 
-        self.glowDrawer
-          .setIndexBuffer(ibo)
-          .setAttributeVbo(vbo)
-          .setInstanceAttributeData(instanceData);
-        self.glowDrawer.uniforms.texture.setValue(0).setTexture(texture);
-        self.glowDrawer.draw(count);
+        try {
+          instanceVbo.set(instanceData);
+          self.glowDrawer
+            .setIndexBuffer(ibo)
+            .setAttributeVbo(vbo)
+            .setInstanceAttributeVbo(instanceVbo);
+          self.glowDrawer.uniforms.texture.setValue(0).setTexture(texture);
+          self.glowDrawer.draw(count);
+        } catch (e) {
+          console.error("obj-glow draw error", objType, instanceData.length);
+          throw e;
+        }
       });
     },
 
   });
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.Player", {
+    superClass: "glb.Obj",
+
+    hp: 10,
+    muteki: false,
+    mutekiTime: 0,
+    controllable: false,
+    bits: null,
+    bitData: null,
+    shift: 0,
+
+    init: function(id, instanceData, instanceStride) {
+      this.superInit(id, instanceData, instanceStride);
+
+      this.roll = 0;
+      this.bits = [];
+
+      this.bitData0 = [{
+        x: -120,
+        y: 35,
+        d: (-20 - 90).toRadian(),
+        sr: Math.sin((-20 - 90).toRadian()),
+        cr: Math.cos((-20 - 90).toRadian()),
+        sw: Math.sin((-20).toRadian()),
+        cw: Math.cos((-20).toRadian()),
+      }, {
+        x: -70,
+        y: 20,
+        d: (-10 - 90).toRadian(),
+        sr: Math.sin((-10 - 90).toRadian()),
+        cr: Math.cos((-10 - 90).toRadian()),
+        sw: Math.sin((-10).toRadian()),
+        cw: Math.cos((-10).toRadian()),
+      }, {
+        x: 70,
+        y: 20,
+        d: (10 - 90).toRadian(),
+        sr: Math.sin((10 - 90).toRadian()),
+        cr: Math.cos((10 - 90).toRadian()),
+        sw: Math.sin((10).toRadian()),
+        cw: Math.cos((10).toRadian()),
+      }, {
+        x: 120,
+        y: 35,
+        d: (20 - 90).toRadian(),
+        sr: Math.sin((20 - 90).toRadian()),
+        cr: Math.cos((20 - 90).toRadian()),
+        sw: Math.sin((20).toRadian()),
+        cw: Math.cos((20).toRadian()),
+      }, ];
+
+      this.bitData1 = [{
+        x: -80,
+        y: 10,
+        d: (6 - 90).toRadian(),
+        sr: Math.sin((6 - 90).toRadian()),
+        cr: Math.cos((6 - 90).toRadian()),
+        sw: Math.sin((6).toRadian()),
+        cw: Math.cos((6).toRadian()),
+      }, {
+        x: -50,
+        y: 20,
+        d: (3 - 90).toRadian(),
+        sr: Math.sin((3 - 90).toRadian()),
+        cr: Math.cos((3 - 90).toRadian()),
+        sw: Math.sin((3).toRadian()),
+        cw: Math.cos((3).toRadian()),
+      }, {
+        x: 50,
+        y: 20,
+        d: (-3 - 90).toRadian(),
+        sr: Math.sin((-3 - 90).toRadian()),
+        cr: Math.cos((-3 - 90).toRadian()),
+        sw: Math.sin((-3).toRadian()),
+        cw: Math.cos((-3).toRadian()),
+      }, {
+        x: 80,
+        y: 10,
+        d: (-6 - 90).toRadian(),
+        sr: Math.sin((-6 - 90).toRadian()),
+        cr: Math.cos((-6 - 90).toRadian()),
+        sw: Math.sin((-6).toRadian()),
+        cw: Math.cos((-6).toRadian()),
+      }, ];
+
+      this.on("enterframe", function(e) {
+        var app = e.app;
+        this.control(app);
+      });
+    },
+
+    spawn: function() {
+      glb.Obj.prototype.spawn.call(this, {
+        visible: false,
+        x: SCREEN_WIDTH * 0.5,
+        y: SCREEN_HEIGHT * 1.2,
+        rotZ: (-90).toRadian(),
+        scaleX: 20,
+        scaleY: 20,
+        scaleZ: 20,
+      });
+
+      return this;
+    },
+
+    launch: function() {
+      this.tweener
+        .clear()
+        .set({
+          x: SCREEN_WIDTH * 0.5,
+          y: SCREEN_HEIGHT * 1.2,
+          visible: true,
+          muteki: true,
+          controllable: false,
+        })
+        .to({
+          y: SCREEN_HEIGHT * 0.9,
+        }, 1000, "easeOutBack")
+        .set({
+          controllable: true,
+        })
+        .wait(3000)
+        .set({
+          muteki: false,
+        });
+    },
+
+    setBarrier: function(barrier) {
+      this.barrier = barrier;
+      return this;
+    },
+
+    update: function(app) {
+      var index = this.index;
+      var instanceData = this.instanceData;
+
+      var v = this.shift;
+
+      for (var i = 0; i < 4; i++) {
+        var bit = this.bits[i];
+        var bd0 = this.bitData0[i];
+        var bd1 = this.bitData1[i];
+        var x = bd0.x * (1 - v) + bd1.x * v;
+        var y = bd0.y * (1 - v) + bd1.y * v;
+        var d = bd0.d * (1 - v) + bd1.d * v;
+        if (bit) {
+          bit.visible = this.visible;
+          bit.x = this.x + x;
+          bit.y = this.y + y;
+          quat.setAxisAngle(bit.quaternion, [0, 0, 1], d);
+          bit.rotateX(this.age * (i < 2 ? 0.2 : -0.2));
+        }
+      }
+
+      var barrier = this.barrier;
+      if (barrier) {
+        barrier.visible = this.muteki;
+        barrier.x = this.x;
+        barrier.y = this.y;
+        barrier.rotateX(0.5);
+      }
+
+      if (this.dirty) {
+        quat.mul(tempQuat, RX, this.quaternion);
+        mat4.fromRotationTranslationScale(this.matrix, tempQuat, this.position, this.scale);
+
+        instanceData[index + 0] = this.visible ? 1 : 0;
+        instanceData[index + 1] = this.matrix[0];
+        instanceData[index + 2] = this.matrix[1];
+        instanceData[index + 3] = this.matrix[2];
+        instanceData[index + 4] = this.matrix[4];
+        instanceData[index + 5] = this.matrix[5];
+        instanceData[index + 6] = this.matrix[6];
+        instanceData[index + 7] = this.matrix[8];
+        instanceData[index + 8] = this.matrix[9];
+        instanceData[index + 9] = this.matrix[10];
+        instanceData[index + 10] = this.matrix[12];
+        instanceData[index + 11] = this.matrix[13];
+        instanceData[index + 12] = this.matrix[14];
+        this.dirty = false;
+      }
+
+      this.age += 1;
+      this.mutekiTime -= 1;
+    },
+
+    control: function(app) {
+      if (!this.controllable) return;
+
+      var frame = app.ticker.frame;
+      var kb = app.keyboard;
+      var gp = app.gamepadManager.get();
+      var dir = kb.getKeyDirection();
+
+      var gpdir = gp.getStickDirection();
+      if (gpdir.length() > 0.5) {
+        var x = 0;
+        var y = 0;
+        if (gpdir.x < -0.5) x = -1.0;
+        else if (0.5 < gpdir.x) x = 1.0;
+        if (gpdir.y < -0.5) y = -1.0;
+        else if (0.5 < gpdir.y) y = 1.0;
+        dir.add(phina.geom.Vector2(x, y).normalize());
+      }
+
+      dir.add(gp.getKeyDirection());
+
+      dir.normalize();
+
+      var speed = (kb.getKey("LASER") || gp.getKey("LASER")) ? 13 : 24;
+
+      this.x = Math.clamp(this.x + dir.x * speed, 10, SCREEN_WIDTH - 10);
+      this.y = Math.clamp(this.y + dir.y * speed, 10, SCREEN_HEIGHT - 10);
+
+      if (dir.x) {
+        this.roll = Math.clamp(this.roll - dir.x * 0.2, -R90, R90);
+      } else {
+        if (this.roll < -0.2) {
+          this.roll += 0.2;
+        } else if (0.2 < this.roll) {
+          this.roll -= 0.2;
+        } else {
+          this.roll = 0;
+        }
+      }
+      quat.copy(this.quaternion, BASE_QUAT);
+      quat.rotateX(this.quaternion, this.quaternion, this.roll);
+
+      if (kb.getKey("LASER") || gp.getKey("LASER")) {
+        this.shift = Math.min(this.shift + 0.2, 1);
+      } else {
+        this.shift = Math.max(this.shift - 0.2, 0);
+      }
+
+      if ((kb.getKey("SHOT") || gp.getKey("SHOT")) && frame % 2 === 0) {
+        this.shot();
+      }
+    },
+
+    hitBullet: function(bullet) {
+      // TO25O
+    },
+
+    hitEnemy: function(enemy) {
+      // TODO
+    },
+
+    shot: function() {
+      for (var i = -2; i < 2; i++) {
+        this.flare("fireShot", {
+          x: this.x + i * 20 + 10,
+          y: this.y - 20,
+          rotation: Math.PI * -0.5,
+          scale: 4,
+          frameX: 0,
+          frameY: 1,
+          alpha: 0.25,
+          dx: 0,
+          dy: -60,
+        });
+      }
+
+      var v = this.shift;
+
+      for (var i = 0; i < 4; i++) {
+        var bd0 = this.bitData0[i];
+        var bd1 = this.bitData1[i];
+        var x = bd0.x * (1 - v) + bd1.x * v;
+        var y = bd0.y * (1 - v) + bd1.y * v;
+        var d = bd0.d * (1 - v) + bd1.d * v;
+        var cw = bd0.cw * (1 - v) + bd1.cw * v;
+        var sw = bd0.sw * (1 - v) + bd1.sw * v;
+        var cr = bd0.cr * (1 - v) + bd1.cr * v;
+        var sr = bd0.sr * (1 - v) + bd1.sr * v;
+        [-1, 1].forEach(function(j) {
+          this.flare("fireShot", {
+            x: this.x + x + cw * 15 * j + cr * 30,
+            y: this.y + y + sw * 15 * j + sr * 30,
+            rotation: d,
+            scale: 4,
+            frameX: 3,
+            frameY: 1,
+            alpha: 0.25,
+            dx: cr * 60,
+            dy: sr * 60,
+          });
+        }.bind(this));
+      }
+    },
+
+  });
+
+  var BASE_QUAT = quat.rotateZ(quat.create(), quat.create(), (-90).toRadian());
+  var RX = quat.setAxisAngle(quat.create(), [1, 0, 0], (10).toRadian());
+  var tempQuat = quat.create();
+  var R90 = (90).toRadian();
+  var R45 = (45).toRadian();
+  var R225 = (22.5).toRadian();
 
 });
 
@@ -2070,6 +1940,765 @@ phina.namespace(function() {
     viewCoordToShaderCoord: function(x, y) {
       var q = glb.GLLayer.quality;
       return [x * q / this.sw, (SCREEN_HEIGHT - y) * q / this.sh];
+    },
+
+  });
+
+});
+
+phina.namespace(function() {
+  phina.define("glb.Shot", {
+    superClass: "glb.Sprite",
+    
+    power: 0,
+
+    _active: false,
+
+    init: function(id, instanceData, instanceStride) {
+      this.superInit(id, instanceData, instanceStride);
+    },
+
+    spawn: function(options) {
+      this.dx = options.dx;
+      this.dy = options.dy;
+      return glb.Sprite.prototype.spawn.call(this, options);
+    },
+
+    activate: function() {
+      this._active = true;
+      this.flare("activated");
+      return this;
+    },
+
+    inactivate: function() {
+      this._active = false;
+      this.flare("inactivated");
+      return this;
+    },
+
+    update: function(app) {
+      this.x += this.dx;
+      this.y += this.dy;
+      glb.Sprite.prototype.update.call(this, app);
+    },
+
+    hitEnemy: function(e) {
+      // TODO
+      this.flare("hitEnemy");
+      this.remove();
+    },
+
+  });
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.Sprite", {
+    superClass: "phina.app.Element",
+
+    id: -1,
+    instanceData: null,
+
+    x: 0,
+    y: 0,
+    rotation: 0,
+    scale: 0,
+
+    age: 0,
+
+    init: function(id, instanceData, instanceStride) {
+      this.superInit();
+      this.id = id;
+      this.instanceData = instanceData;
+      this.index = id * instanceStride;
+    },
+
+    spawn: function(options) {
+      options.$safe({
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scale: 1,
+        frameX: 0,
+        frameY: 0,
+        alpha: 1,
+      });
+      
+      var index = this.index;
+      var instanceData = this.instanceData;
+
+      this.x = options.x;
+      this.y = options.y;
+      this.rotation = options.rotation;
+      this.scale = options.scale;
+      this.frameX = options.frameX;
+      this.frameY = options.frameY;
+      this.alpha = options.alpha;
+
+      instanceData[index + 0] = 1; // visible
+      instanceData[index + 1] = this.x; // position.x
+      instanceData[index + 2] = this.y; // position.y
+      instanceData[index + 3] = this.rotation; // rotation
+      instanceData[index + 4] = this.scale; // scale
+      instanceData[index + 5] = this.frameX; // frame.x
+      instanceData[index + 6] = this.frameY; // frame.y
+      instanceData[index + 7] = this.alpha; // alpha
+
+      this.age = 0;
+
+      return this;
+    },
+
+    update: function(app) {
+      var index = this.index;
+      var instanceData = this.instanceData;
+
+      if (this.x < -100 || 640 + 100 < this.x || this.y < -100 || 960 + 100 < this.y) {
+        this.remove();
+        return;
+      }
+
+      instanceData[index + 1] = this.x; // position.x
+      instanceData[index + 2] = this.y; // position.y
+      instanceData[index + 3] = this.rotation; // rotation
+      instanceData[index + 4] = this.scale; // scale
+      instanceData[index + 5] = this.frameX; // frame.x
+      instanceData[index + 6] = this.frameY; // frame.y
+      instanceData[index + 7] = this.alpha; // alpha
+
+      this.age += 1;
+    },
+
+    onremoved: function() {
+      this.instanceData[this.index + 0] = 0;
+    }
+  });
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.SpritDrawer", {
+    superClass: "phigl.InstancedDrawable",
+
+    objTypes: null,
+
+    counts: null,
+    instanceData: null,
+    textures: null,
+    pools: null,
+
+    init: function(gl, ext, w, h) {
+      this.superInit(gl, ext);
+
+      this.objTypes = [];
+
+      this.counts = {};
+      this.instanceData = {};
+      this.instanceVbos = {};
+      this.textures = {};
+      this.pools = {};
+
+      this
+        .setProgram(phina.asset.AssetManager.get("shader", "sprites"))
+        .setDrawMode(gl.TRIANGLE_STRIP)
+        .setIndexValues([0, 1, 2, 3])
+        .setAttributes("position", "uv")
+        .setAttributeDataArray([{
+          unitSize: 2,
+          data: [
+            //
+            -16, +16,
+            //
+            +16, +16,
+            //
+            -16, -16,
+            //
+            +16, -16,
+          ]
+        }, {
+          unitSize: 2,
+          data: [
+            //
+            0, 32 / 256,
+            //
+            32 / 256, 32 / 256,
+            //
+            0, 0,
+            //
+            32 / 256, 0,
+          ]
+        }, ])
+        .setInstanceAttributes(
+          "instanceVisible",
+          "instancePosition",
+          "instanceRotation",
+          "instanceScale",
+          "instanceFrame",
+          "instanceAlpha"
+        )
+        .setUniforms(
+          "vpMatrix",
+          "texture",
+          "globalScale"
+        );
+
+      var instanceStride = this.instanceStride / 4;
+
+      this.uniforms.globalScale.setValue(1.0);
+    },
+
+    addObjType: function(textureName, count, className) {
+      className = className || "glb.Sprite";
+
+      count = count || 1;
+      var self = this;
+      var instanceStride = this.instanceStride / 4;
+
+      if (!this.objTypes.contains(textureName)) {
+        this.counts[textureName] = count;
+        var instanceData = this.instanceData[textureName] = Array.range(count).map(function(i) {
+          return [
+            // visible
+            0,
+            // m0
+            1, 0, 0,
+            // m1
+            0, 1, 0,
+            // m2
+            0, 0, 1,
+            // m3
+            0, 0, 0,
+          ];
+        }).flatten();
+        this.instanceVbos[textureName] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW);
+
+        this.textures[textureName] = phina.asset.AssetManager.get("texture", textureName + ".png");
+
+        var ObjClass = phina.using(className);
+        this.pools[textureName] = Array.range(count).map(function(id) {
+          return ObjClass(id, instanceData, instanceStride)
+            .on("removed", function() {
+              self.pools[textureName].push(this);
+            });
+        });
+
+        this.objTypes.push(textureName);
+      }
+    },
+
+    _createTexture: function() {
+      var texture = phina.graphics.Canvas().setSize(512, 512);
+      var context = texture.context;
+      var g = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+      g.addColorStop(0.0, "rgba(255, 255, 255, 0.3)");
+      g.addColorStop(0.6, "rgba(255, 125,   0, 0.3)");
+      g.addColorStop(1.0, "rgba(255,   0,   0, 0.0)");
+      context.fillStyle = g;
+      context.fillRect(0, 0, 64, 64);
+      return texture;
+    },
+
+    get: function(textureName) {
+      return this.pools[textureName].shift();
+    },
+
+    update: function() {
+    },
+
+    render: function(uniforms) {
+      var gl = this.gl;
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.CULL_FACE);
+
+      this.uniforms.globalScale.value = 1.0;
+
+      if (uniforms) {
+        uniforms.forIn(function(key, value) {
+          if (this.uniforms[key]) this.uniforms[key].value = value;
+        }.bind(this));
+      }
+      var self = this;
+      this.objTypes.forEach(function(textureName) {
+        var count = self.counts[textureName];
+        var instanceData = self.instanceData[textureName];
+        var instanceVbo = self.instanceVbos[textureName];
+        var texture = self.textures[textureName];
+
+        instanceVbo.set(instanceData);
+
+        self.setInstanceAttributeVbo(instanceVbo);
+        self.uniforms.texture.setValue(0).setTexture(texture);
+        self.draw(count);
+      });
+    },
+  });
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.TerrainDrawer", {
+
+    gl: null,
+    faceDrawer: null,
+    edgeDrawer: null,
+
+    instanceData: null,
+    pool: null,
+    count: 0,
+
+    init: function(gl, ext, w, h) {
+      this.gl = gl;
+      this.count = (glb.TerrainDrawer.countX * 2) * (glb.TerrainDrawer.countZ * 2);
+      this.faceDrawer = phigl.InstancedDrawable(gl, ext);
+      this.edgeDrawer = phigl.InstancedDrawable(gl, ext);
+      var instanceData = this.instanceData = [];
+      for (var i = 0; i < this.count; i++) {
+        instanceData.push(
+          // visible
+          0,
+          // m0
+          1, 0, 0,
+          // m1
+          0, 1, 0,
+          // m2
+          0, 0, 1,
+          // m3
+          0, 0, 0
+        );
+      }
+
+      this.faceDrawer
+        .setProgram(phina.asset.AssetManager.get("shader", "terrain"))
+        .setIndexBuffer(phina.asset.AssetManager.get("ibo", "hex.obj"))
+        .setAttributes("position", "uv", "normal")
+        .setAttributeVbo(phina.asset.AssetManager.get("vbo", "hex.obj"))
+        .setInstanceAttributes(
+          "instanceVisible",
+          "instanceMatrix0",
+          "instanceMatrix1",
+          "instanceMatrix2",
+          "instanceMatrix3"
+        )
+        .setUniforms(
+          "vpMatrix",
+          "lightDirection",
+          "diffuseColor",
+          "ambientColor",
+          "cameraPosition"
+        );
+
+      this.edgeDrawer
+        .setDrawMode(gl.LINES)
+        .setProgram(phina.asset.AssetManager.get("shader", "terrainEdge"))
+        .setIndexBuffer(phina.asset.AssetManager.get("edgesIbo", "hex.obj"))
+        .setAttributes("position")
+        .setAttributeVbo(phina.asset.AssetManager.get("edgesVbo", "hex.obj"))
+        .setInstanceAttributes(
+          "instanceVisible",
+          "instanceMatrix0",
+          "instanceMatrix1",
+          "instanceMatrix2",
+          "instanceMatrix3"
+        )
+        .setUniforms(
+          "vpMatrix",
+          "cameraPosition",
+          "color"
+        );
+
+      var instanceStride = this.edgeDrawer.instanceStride / 4;
+
+      this.lightDirection = vec3.set(vec3.create(), 1, 1, 0);
+      this.faceDrawer.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
+      // this.faceDrawer.uniforms.diffuseColor.value = [0.22, 0.22, 0.22 * 2.6, 0.75];
+      this.faceDrawer.uniforms.ambientColor.value = [0.05, 0.05, 0.05, 1.0];
+      this.edgeDrawer.uniforms.color.value = [0.6, 0.6, 0.6, 1.0];
+
+      var self = this;
+      this.pool = Array.range(0, this.count).map(function(id) {
+        return glb.Obj(id, instanceData, instanceStride)
+          .on("enterframe", function() {
+            // 地形の流れる方向
+            this.x += 6 * 0.01;
+            this.z += 20 * 0.01;
+
+            var countX = glb.TerrainDrawer.countX;
+            var countZ = glb.TerrainDrawer.countZ;
+            var unit = glb.TerrainDrawer.unit;
+            if (this.x < -countX * unit) this.x += countX * unit * 2;
+            else if (countX * unit < this.x) this.x -= countX * unit * 2;
+            if (this.z < -countZ * unit * 1 / Math.sqrt(3) * 1.5) this.z += countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
+            else if (countZ * unit * 1 / Math.sqrt(3) * 1.5 < this.z) this.z -= countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
+          })
+          .on("removed", function() {
+            self.pool.push(this);
+          });
+      });
+
+      this.faceDrawer.setInstanceAttributeData(this.instanceData);
+      this.edgeDrawer.setInstanceAttributeData(this.instanceData);
+    },
+
+    update: function(app) {
+      var f = app.ticker.frame * 0.001;
+      this.lightDirection = vec3.set(this.lightDirection, Math.cos(f * 10) * 1.1, 1, Math.sin(f * 10) * 1.1);
+      vec3.normalize(this.lightDirection, this.lightDirection);
+      this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
+
+      this.faceDrawer.setInstanceAttributeData(this.instanceData);
+      this.edgeDrawer.setInstanceAttributeData(this.instanceData);
+    },
+
+    get: function() {
+      return this.pool.shift();
+    },
+
+    render: function(uniforms) {
+      var gl = this.gl;
+      gl.enable(gl.BLEND);
+      gl.enable(gl.DEPTH_TEST);
+      gl.enable(gl.CULL_FACE);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.cullFace(gl.FRONT);
+
+      if (uniforms) {
+        uniforms.forIn(function(key, value) {
+          if (this.edgeDrawer.uniforms[key]) this.edgeDrawer.uniforms[key].value = value;
+          if (this.faceDrawer.uniforms[key]) this.faceDrawer.uniforms[key].value = value;
+        }.bind(this));
+      }
+
+      this.edgeDrawer.draw(this.count);
+      this.faceDrawer.draw(this.count);
+    },
+
+    _static: {
+      countX: 12,
+      countZ: 22,
+      unit: 2.05,
+    },
+  });
+
+});
+
+phina.namespace(function() {
+
+  phina.asset.AssetLoader.assetLoadFunctions["textureSource"] = function(key, path) {
+    var texture = phina.asset.Texture();
+    var flow = texture.load(path);
+    return flow;
+  };
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.Assets", {
+    _static: {
+      get: function(options) {
+        switch (options.assetType) {
+          case "common":
+            return {
+              obj: {
+                "fighter.obj": "./asset/obj/fighter.obj",
+                "bit.obj": "./asset/obj/bit.obj",
+                "hex.obj": "./asset/obj/hex.obj",
+                "barrier.obj": "./asset/obj/barrier.obj",
+              },
+              textureSource: {
+                "fighter.png": "./asset/image/fighter.png",
+                "bit.png": "./asset/image/bit.png",
+                "shot.png": "./asset/image/bullets.png",
+                "bullets.png": "./asset/image/bullets.png",
+                "effect.png": "./asset/image/effect.png",
+                "barrier.png": "./asset/image/barrier.png",
+              },
+              vertexShader: {
+                "bullets.vs": "./asset/shader/bullets.vs",
+                "sprites.vs": "./asset/shader/sprites.vs",
+                "terrain.vs": "./asset/shader/terrain.vs",
+                "terrainEdge.vs": "./asset/shader/terrainEdge.vs",
+                "obj.vs": "./asset/shader/obj.vs",
+                "objEdge.vs": "./asset/shader/objEdge.vs",
+                "objGlow.vs": "./asset/shader/objGlow.vs",
+                "postproccess_copy.vs": "./asset/shader/postproccess.vs",
+                "postproccess_blur.vs": "./asset/shader/postproccess.vs",
+                "postproccess_zoom.vs": "./asset/shader/postproccess.vs",
+              },
+              fragmentShader: {
+                "bullets.fs": "./asset/shader/bullets.fs",
+                "sprites.fs": "./asset/shader/sprites.fs",
+                "terrain.fs": "./asset/shader/terrain.fs",
+                "terrainEdge.fs": "./asset/shader/terrainEdge.fs",
+                "obj.fs": "./asset/shader/obj.fs",
+                "objEdge.fs": "./asset/shader/objEdge.fs",
+                "objGlow.fs": "./asset/shader/objGlow.fs",
+                "postproccess_copy.fs": "./asset/shader/postproccess_copy.fs",
+                "postproccess_blur.fs": "./asset/shader/postproccess_blur.fs",
+                "postproccess_zoom.fs": "./asset/shader/postproccess_zoom.fs",
+              },
+            };
+          case "stage1":
+            return {
+              obj: {
+                "enemyS1.obj": "./asset/obj/enemyS1.obj",
+                "enemyS2.obj": "./asset/obj/enemyS2.obj",
+                "enemyS3.obj": "./asset/obj/enemyS3.obj",
+                "enemyS4.obj": "./asset/obj/enemyS4.obj",
+              },
+              textureSource: {
+                "enemyS1.png": "./asset/image/enemyS1.png",
+                "enemyS2.png": "./asset/image/enemyS2.png",
+                "enemyS3.png": "./asset/image/enemyS3.png",
+                "enemyS4.png": "./asset/image/enemyS4.png",
+              },
+            };
+          default:
+            throw "invalid assetType: " + options.assetType;
+        }
+      },
+    },
+  });
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.Danmaku", {
+    init: function() {},
+    _static: {
+      _initialized: false,
+      config: {},
+      intervalRate: 1.0,
+      speedRate: 15.0,
+
+      initialize: function() {
+        this._initialized = true;
+
+        var R = bullet({ type: 2 });
+
+        // 自機狙い単発
+        this.basic0 = new bulletml.Root({
+          top: action([
+            repeat(Infinity, [
+              interval(30),
+              fire(speed(1), R),
+            ]),
+          ]),
+        });
+
+        // 自機狙い５連発
+        this.basic1 = new bulletml.Root({
+          top: action([
+            repeat(Infinity, [
+              interval(30),
+              fire(speed(1), R),
+              repeat(4, [
+                interval(4),
+                fire(dseq(0), sseq(0), R),
+              ]),
+            ]),
+          ]),
+        });
+
+        // 自機狙い3way（広）
+        this.basic2 = new bulletml.Root({
+          top: action([
+            repeat(Infinity, [
+              interval(30),
+              fire(direction(-15), speed(1), R),
+              repeat(2, [
+                fire(dseq(15), speed(1), R),
+              ]),
+            ]),
+          ]),
+        });
+
+        // 自機狙い3way（狭）
+        this.basic3 = new bulletml.Root({
+          top: action([
+            repeat(Infinity, [
+              interval(30),
+              fire(direction(-8), speed(1), R),
+              repeat(2, [
+                fire(dseq(8), speed(1), R),
+              ]),
+            ]),
+          ]),
+        });
+
+        this.test = new bulletml.Root({
+          top: action([
+            repeat(Infinity, [
+              fire(dseq(1), speed(1), R),
+              repeat(90 - 1, [
+                fire(dseq(360 / 90), speed(1), R),
+              ]),
+              interval(5),
+            ]),
+          ]),
+        });
+      },
+
+      createRunner: function(name) {
+        if (!this._initialized) this.initialize();
+        return this[name].createRunner(this.config);
+      },
+    },
+  });
+
+  var action = bulletml.dsl.action;
+  var actionRef = bulletml.dsl.actionRef;
+  var bullet = bulletml.dsl.bullet;
+  var bulletRef = bulletml.dsl.bulletRef;
+  var fire = bulletml.dsl.fire;
+  var fireRef = bulletml.dsl.fireRef;
+  var changeDirection = bulletml.dsl.changeDirection;
+  var changeSpeed = bulletml.dsl.changeSpeed;
+  var accel = bulletml.dsl.accel;
+  var wait = bulletml.dsl.wait;
+  var vanish = bulletml.dsl.vanish;
+  var repeat = bulletml.dsl.repeat;
+  var bindVar = bulletml.dsl.bindVar;
+  var notify = bulletml.dsl.notify;
+  var direction = bulletml.dsl.direction;
+  var _speed = bulletml.dsl.speed;
+  var horizontal = bulletml.dsl.horizontal;
+  var vertical = bulletml.dsl.vertical;
+  var fireOption = bulletml.dsl.fireOption;
+  var offsetX = bulletml.dsl.offsetX;
+  var offsetY = bulletml.dsl.offsetY;
+  var autonomy = bulletml.dsl.autonomy;
+
+  var interval = function(v) {
+    return wait(Math.max(v * glb.Danmaku.intervalRate, 1));
+  };
+
+  var speed = function(v) {
+    return _speed(v * glb.Danmaku.speedRate);
+  };
+
+  var dseq = function(v) {
+    return direction(v, "sequence");
+  };
+  var sseq = function(v) {
+    return _speed(v, "sequence");
+  };
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.Enemy", {
+    superClass: "glb.Obj",
+
+    _static: {
+      data: {},
+    },
+
+    _active: false,
+
+    hp: 10,
+    mutekiTime: 0,
+    runner: null,
+    pattern: 0,
+
+    radius: 50,
+
+    init: function(id, instanceData, instanceStride) {
+      this.superInit(id, instanceData, instanceStride);
+      this.on("removed", function() {
+        this.runner = null;
+      });
+    },
+
+    activate: function() {
+      this._active = true;
+      this.flare("activated");
+      return this;
+    },
+
+    inactivate: function() {
+      this._active = false;
+      this.flare("inactivated");
+      return this;
+    },
+
+    update: function(app) {
+      var index = this.index;
+      var instanceData = this.instanceData;
+
+      if (this.dirty) {
+        quat.mul(tempQuat, RX, this.quaternion);
+        mat4.fromRotationTranslationScale(this.matrix, tempQuat, this.position, this.scale);
+
+        instanceData[index + 0] = this.visible ? 1 : 0;
+        instanceData[index + 1] = this.matrix[0];
+        instanceData[index + 2] = this.matrix[1];
+        instanceData[index + 3] = this.matrix[2];
+        instanceData[index + 4] = this.matrix[4];
+        instanceData[index + 5] = this.matrix[5];
+        instanceData[index + 6] = this.matrix[6];
+        instanceData[index + 7] = this.matrix[8];
+        instanceData[index + 8] = this.matrix[9];
+        instanceData[index + 9] = this.matrix[10];
+        instanceData[index + 10] = this.matrix[12];
+        instanceData[index + 11] = this.matrix[13];
+        instanceData[index + 12] = this.matrix[14];
+        this.dirty = false;
+      }
+
+      if (this.runner) {
+        this.runner.x = this.x;
+        this.runner.y = this.y;
+        this.runner.update();
+      }
+
+      this.age += 1;
+      this.mutekiTime -= 1;
+    },
+
+    hitShot: function(shot) {
+      // TODO
+      if (this.mutekiTime > 0) {
+        this.hp -= shot.power;
+        this.mutekiTime = 1;
+        this.flare("damaged");
+      }
+    },
+
+    hitPlayer: function(player) {
+      // TODO
+    },
+
+    setRunner: function(name) {
+      this.runner = glb.Danmaku.createRunner(name);
+      return this;
+    },
+
+    setPattern: function(id) {
+      this.pattern = id;
+      return this;
+    },
+
+  });
+
+  var RX = quat.setAxisAngle(quat.create(), [1, 0, 0], (45).toRadian());
+  var tempQuat = quat.create();
+
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.EnemyS1", {
+    superClass: "glb.Enemy",
+
+    init: function(id, instanceData, instanceStride) {
+      this.superInit(id, instanceData, instanceStride);
     },
 
   });
@@ -2403,12 +3032,24 @@ phina.namespace(function() {
         },
       });
 
+      var self = this;
       var glLayer = this.glLayer;
       var uiLayer = this.uiLayer;
       var collisions = this.collisions = glb.Collisions();
       var explosion = this.explosion = glb.Explosion(glLayer);
       var player = this.player = glLayer.playerDrawer.get("fighter");
       var stage = this.stage = glb.Stage();
+
+      stage.on("enemyTask", function(e) {
+        self.launchEnemy(e.name, e.pattern, e.runner, e.x, e.y);
+      });
+      stage.on("spawnerTask", function(e) {
+        glb.Spawner(e)
+          .on("spawn", function(e) {
+            self.launchEnemy(e.name, e.pattern, e.runner, e.x, e.y);
+          })
+          .addChildTo(self);
+      });
 
       this.on("enterframe", function(e) {
         collisions.update(e.app);
@@ -2433,20 +3074,38 @@ phina.namespace(function() {
         });
 
       player
-        .spawn(glLayer)
+        .spawn()
+        .addChildTo(glLayer)
         .on("fireShot", function(e) {
-          collisions.addShot(e.shot);
-          if (!e.shot.has("hitEnemy")) {
-            e.shot.on("hitEnemy", function() {
-              explosion.spark(this.x, this.y - 20);
-            });
+          var shot = glLayer.spriteDrawer.get("shot");
+          if (shot) {
+            shot.spawn(e).addChildTo(glLayer);
+            collisions.addShot(shot);
+            if (!shot.has("hitEnemy")) {
+              shot
+                .on("hitEnemy", function() {
+                  explosion.small(this.x, this.y - 10);
+                });
+            }
           }
-        })
-        .addChildTo(glLayer);
+        });
       collisions.setPlayer(player);
 
-      var barrier = glLayer.playerDrawer.get("barrier");
-      barrier
+      [-2, -1, 1, 2].forEach(function(i) {
+        var bit = glLayer.playerDrawer.get("bit")
+          .spawn({
+            x: SCREEN_WIDTH / 2,
+            y: SCREEN_HEIGHT / 2,
+            scaleX: 20,
+            scaleY: 20,
+            scaleZ: 20,
+            rotZ: (-90 + i * 10).toRadian(),
+          })
+          .addChildTo(glLayer);
+        player.bits.push(bit);
+      });
+
+      var barrier = glLayer.playerDrawer.get("barrier")
         .spawn({
           scaleX: 20,
           scaleY: 20,
@@ -2457,9 +3116,9 @@ phina.namespace(function() {
       player.setBarrier(barrier);
 
       // TODO atdks
-      for (var i = 0; i < 10; i++) {
-        this.launchEnemy("enemyS1", 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.9) * SCREEN_HEIGHT);
-      }
+      // for (var i = 0; i < 10; i++) {
+        // this.launchEnemy("enemyS1", 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.9) * SCREEN_HEIGHT);
+      // }
 
       player.launch();
 
@@ -2494,311 +3153,41 @@ phina.namespace(function() {
 });
 
 phina.namespace(function() {
-  phina.define("glb.Shot", {
-    superClass: "glb.Sprite",
-    
-    power: 0,
-
-    _active: false,
-
-    init: function(id, instanceData, instanceStride) {
-      this.superInit(id, instanceData, instanceStride);
-    },
-
-    spawn: function(options) {
-      this.dx = options.dx;
-      this.dy = options.dy;
-      return glb.Sprite.prototype.spawn.call(this, options);
-    },
-
-    activate: function() {
-      this._active = true;
-      this.flare("activated");
-      return this;
-    },
-
-    inactivate: function() {
-      this._active = false;
-      this.flare("inactivated");
-      return this;
-    },
-
-    update: function(app) {
-      this.x += this.dx;
-      this.y += this.dy;
-      glb.Sprite.prototype.update.call(this, app);
-    },
-
-    hitEnemy: function(e) {
-      // TODO
-      this.flare("hitEnemy");
-      this.remove();
-    },
-
-  });
-});
-
-phina.namespace(function() {
-
-  phina.define("glb.Sprite", {
-    superClass: "phina.app.Element",
-
-    id: -1,
-    instanceData: null,
-
-    x: 0,
-    y: 0,
-    rotation: 0,
-    scale: 0,
-
-    age: 0,
-
-    init: function(id, instanceData, instanceStride) {
-      this.superInit();
-      this.id = id;
-      this.instanceData = instanceData;
-      this.index = id * instanceStride;
-    },
-
-    spawn: function(options) {
-      options.$safe({
-        x: 0,
-        y: 0,
-        rotation: 0,
-        scale: 1,
-        frameX: 0,
-        frameY: 0,
-        alpha: 1,
-      });
-      
-      var index = this.index;
-      var instanceData = this.instanceData;
-
-      this.x = options.x;
-      this.y = options.y;
-      this.rotation = options.rotation;
-      this.scale = options.scale;
-      this.frameX = options.frameX;
-      this.frameY = options.frameY;
-      this.alpha = options.alpha;
-
-      instanceData[index + 0] = 1; // visible
-      instanceData[index + 1] = this.x; // position.x
-      instanceData[index + 2] = this.y; // position.y
-      instanceData[index + 3] = this.rotation; // rotation
-      instanceData[index + 4] = this.scale; // scale
-      instanceData[index + 5] = this.frameX; // frame.x
-      instanceData[index + 6] = this.frameY; // frame.y
-      instanceData[index + 7] = this.alpha; // alpha
-
-      this.age = 0;
-
-      return this;
-    },
-
-    update: function(app) {
-      var index = this.index;
-      var instanceData = this.instanceData;
-
-      if (this.x < -100 || 640 + 100 < this.x || this.y < -100 || 960 + 100 < this.y) {
-        this.remove();
-        return;
-      }
-
-      instanceData[index + 1] = this.x; // position.x
-      instanceData[index + 2] = this.y; // position.y
-      instanceData[index + 3] = this.rotation; // rotation
-      instanceData[index + 4] = this.scale; // scale
-      instanceData[index + 5] = this.frameX; // frame.x
-      instanceData[index + 6] = this.frameY; // frame.y
-      instanceData[index + 7] = this.alpha; // alpha
-
-      this.age += 1;
-    },
-
-    onremoved: function() {
-      this.instanceData[this.index + 0] = 0;
-    }
-  });
-
-});
-
-phina.namespace(function() {
-
-  phina.define("glb.SpritDrawer", {
-    superClass: "phigl.InstancedDrawable",
-
-    objTypes: null,
-
-    counts: null,
-    instanceData: null,
-    textures: null,
-    pools: null,
-
-    init: function(gl, ext, w, h) {
-      this.superInit(gl, ext);
-
-      this.objTypes = [];
-
-      this.counts = {};
-      this.instanceData = {};
-      this.instanceVbos = {};
-      this.textures = {};
-      this.pools = {};
-
-      this
-        .setProgram(phina.asset.AssetManager.get("shader", "sprites"))
-        .setDrawMode(gl.TRIANGLE_STRIP)
-        .setIndexValues([0, 1, 2, 3])
-        .setAttributes("position", "uv")
-        .setAttributeDataArray([{
-          unitSize: 2,
-          data: [
-            //
-            -16, +16,
-            //
-            +16, +16,
-            //
-            -16, -16,
-            //
-            +16, -16,
-          ]
-        }, {
-          unitSize: 2,
-          data: [
-            //
-            0, 32 / 256,
-            //
-            32 / 256, 32 / 256,
-            //
-            0, 0,
-            //
-            32 / 256, 0,
-          ]
-        }, ])
-        .setInstanceAttributes(
-          "instanceVisible",
-          "instancePosition",
-          "instanceRotation",
-          "instanceScale",
-          "instanceFrame",
-          "instanceAlpha"
-        )
-        .setUniforms(
-          "vpMatrix",
-          "texture",
-          "globalScale"
-        );
-
-      var instanceStride = this.instanceStride / 4;
-
-      this.uniforms.globalScale.setValue(1.0);
-    },
-
-    addObjType: function(textureName, count, className) {
-      className = className || "glb.Sprite";
-
-      count = count || 1;
-      var self = this;
-      var instanceStride = this.instanceStride / 4;
-
-      if (!this.objTypes.contains(textureName)) {
-        this.counts[textureName] = count;
-        var instanceData = this.instanceData[textureName] = Array.range(count).map(function(i) {
-          return [
-            // visible
-            0,
-            // m0
-            1, 0, 0,
-            // m1
-            0, 1, 0,
-            // m2
-            0, 0, 1,
-            // m3
-            0, 0, 0,
-          ];
-        }).flatten();
-        this.instanceVbos[textureName] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW);
-
-        this.textures[textureName] = phina.asset.AssetManager.get("texture", textureName + ".png");
-
-        var ObjClass = phina.using(className);
-        this.pools[textureName] = Array.range(count).map(function(id) {
-          return ObjClass(id, instanceData, instanceStride)
-            .on("removed", function() {
-              self.pools[textureName].push(this);
-            });
-        });
-
-        this.objTypes.push(textureName);
-      }
-    },
-
-    _createTexture: function() {
-      var texture = phina.graphics.Canvas().setSize(512, 512);
-      var context = texture.context;
-      var g = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-      g.addColorStop(0.0, "rgba(255, 255, 255, 0.3)");
-      g.addColorStop(0.6, "rgba(255, 125,   0, 0.3)");
-      g.addColorStop(1.0, "rgba(255,   0,   0, 0.0)");
-      context.fillStyle = g;
-      context.fillRect(0, 0, 64, 64);
-      return texture;
-    },
-
-    get: function(textureName) {
-      return this.pools[textureName].shift();
-    },
-
-    update: function() {
-    },
-
-    render: function(uniforms) {
-      var gl = this.gl;
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-      gl.disable(gl.DEPTH_TEST);
-      gl.disable(gl.CULL_FACE);
-
-      this.uniforms.globalScale.value = 1.0;
-
-      if (uniforms) {
-        uniforms.forIn(function(key, value) {
-          if (this.uniforms[key]) this.uniforms[key].value = value;
-        }.bind(this));
-      }
-      var self = this;
-      this.objTypes.forEach(function(textureName) {
-        var count = self.counts[textureName];
-        var instanceData = self.instanceData[textureName];
-        var instanceVbo = self.instanceVbos[textureName];
-        var texture = self.textures[textureName];
-
-        instanceVbo.set(instanceData);
-
-        self.setInstanceAttributeVbo(instanceVbo);
-        self.uniforms.texture.setValue(0).setTexture(texture);
-        self.draw(count);
-      });
-    },
-  });
-
-});
-
-phina.namespace(function() {
 
   phina.define("glb.Stage", {
+    superClass: "phina.app.Element",
 
     seq: null,
+    waitTime: 0,
 
     init: function() {
+      this.superInit();
       this.seq = [];
     },
 
     update: function() {
+      this.waitTime -= 1;
+      if (this.waitTime > 0) return;
 
+      var task = this.seq.shift();
+      if (task) {
+        this.fire(task);
+      }
     },
-
+    
+    addTask: function(task) {
+      this.seq.push(task);
+      return this;
+    },
+    
+    onwaitTask: function(e) {
+      this.waitTime = e.time;
+    },
+    
+    onstartBgmTask: function(e) {
+      phina.asset.SoundManager.playMusic(e.name, e.fadeTime, e.loop);
+    },
+    
   });
 
 });
@@ -2810,166 +3199,13 @@ phina.namespace(function() {
 
     init: function() {
       this.superInit();
+
+      this
+        .addTask({ type: "waitTask", time: 1000 })
+        .addTask({ type: "enemyTask", name: "", pattern: 0, runner: "", x: 0, y: 0 });
     },
 
   });
-
-});
-
-phina.namespace(function() {
-
-  phina.define("glb.TerrainDrawer", {
-
-    gl: null,
-    faceDrawer: null,
-    edgeDrawer: null,
-
-    instanceData: null,
-    pool: null,
-    count: 0,
-
-    init: function(gl, ext, w, h) {
-      this.gl = gl;
-      this.count = (glb.TerrainDrawer.countX * 2) * (glb.TerrainDrawer.countZ * 2);
-      this.faceDrawer = phigl.InstancedDrawable(gl, ext);
-      this.edgeDrawer = phigl.InstancedDrawable(gl, ext);
-      var instanceData = this.instanceData = [];
-      for (var i = 0; i < this.count; i++) {
-        instanceData.push(
-          // visible
-          0,
-          // m0
-          1, 0, 0,
-          // m1
-          0, 1, 0,
-          // m2
-          0, 0, 1,
-          // m3
-          0, 0, 0
-        );
-      }
-
-      this.faceDrawer
-        .setProgram(phina.asset.AssetManager.get("shader", "terrain"))
-        .setIndexBuffer(phina.asset.AssetManager.get("ibo", "hex.obj"))
-        .setAttributes("position", "uv", "normal")
-        .setAttributeVbo(phina.asset.AssetManager.get("vbo", "hex.obj"))
-        .setInstanceAttributes(
-          "instanceVisible",
-          "instanceMatrix0",
-          "instanceMatrix1",
-          "instanceMatrix2",
-          "instanceMatrix3"
-        )
-        .setUniforms(
-          "vpMatrix",
-          "lightDirection",
-          "diffuseColor",
-          "ambientColor",
-          "cameraPosition"
-        );
-
-      this.edgeDrawer
-        .setDrawMode(gl.LINES)
-        .setProgram(phina.asset.AssetManager.get("shader", "terrainEdge"))
-        .setIndexBuffer(phina.asset.AssetManager.get("edgesIbo", "hex.obj"))
-        .setAttributes("position")
-        .setAttributeVbo(phina.asset.AssetManager.get("edgesVbo", "hex.obj"))
-        .setInstanceAttributes(
-          "instanceVisible",
-          "instanceMatrix0",
-          "instanceMatrix1",
-          "instanceMatrix2",
-          "instanceMatrix3"
-        )
-        .setUniforms(
-          "vpMatrix",
-          "cameraPosition",
-          "color"
-        );
-
-      var instanceStride = this.edgeDrawer.instanceStride / 4;
-
-      this.lightDirection = vec3.set(vec3.create(), 1, 1, 0);
-      this.faceDrawer.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
-      // this.faceDrawer.uniforms.diffuseColor.value = [0.22, 0.22, 0.22 * 2.6, 0.75];
-      this.faceDrawer.uniforms.ambientColor.value = [0.05, 0.05, 0.05, 1.0];
-      this.edgeDrawer.uniforms.color.value = [0.6, 0.6, 0.6, 1.0];
-
-      var self = this;
-      this.pool = Array.range(0, this.count).map(function(id) {
-        return glb.Obj(id, instanceData, instanceStride)
-          .on("enterframe", function() {
-            // 地形の流れる方向
-            this.x += 6 * 0.01;
-            this.z += 20 * 0.01;
-
-            var countX = glb.TerrainDrawer.countX;
-            var countZ = glb.TerrainDrawer.countZ;
-            var unit = glb.TerrainDrawer.unit;
-            if (this.x < -countX * unit) this.x += countX * unit * 2;
-            else if (countX * unit < this.x) this.x -= countX * unit * 2;
-            if (this.z < -countZ * unit * 1 / Math.sqrt(3) * 1.5) this.z += countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
-            else if (countZ * unit * 1 / Math.sqrt(3) * 1.5 < this.z) this.z -= countZ * unit * 1 / Math.sqrt(3) * 1.5 * 2;
-          })
-          .on("removed", function() {
-            self.pool.push(this);
-          });
-      });
-
-      this.faceDrawer.setInstanceAttributeData(this.instanceData);
-      this.edgeDrawer.setInstanceAttributeData(this.instanceData);
-    },
-
-    update: function(app) {
-      var f = app.ticker.frame * 0.001;
-      this.lightDirection = vec3.set(this.lightDirection, Math.cos(f * 10) * 1.1, 1, Math.sin(f * 10) * 1.1);
-      vec3.normalize(this.lightDirection, this.lightDirection);
-      this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
-
-      this.faceDrawer.setInstanceAttributeData(this.instanceData);
-      this.edgeDrawer.setInstanceAttributeData(this.instanceData);
-    },
-
-    get: function() {
-      return this.pool.shift();
-    },
-
-    render: function(uniforms) {
-      var gl = this.gl;
-      gl.enable(gl.BLEND);
-      gl.enable(gl.DEPTH_TEST);
-      gl.enable(gl.CULL_FACE);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      gl.cullFace(gl.FRONT);
-
-      if (uniforms) {
-        uniforms.forIn(function(key, value) {
-          if (this.edgeDrawer.uniforms[key]) this.edgeDrawer.uniforms[key].value = value;
-          if (this.faceDrawer.uniforms[key]) this.faceDrawer.uniforms[key].value = value;
-        }.bind(this));
-      }
-
-      this.edgeDrawer.draw(this.count);
-      this.faceDrawer.draw(this.count);
-    },
-
-    _static: {
-      countX: 12,
-      countZ: 22,
-      unit: 2.05,
-    },
-  });
-
-});
-
-phina.namespace(function() {
-
-  phina.asset.AssetLoader.assetLoadFunctions["textureSource"] = function(key, path) {
-    var texture = phina.asset.Texture();
-    var flow = texture.load(path);
-    return flow;
-  };
 
 });
 

@@ -1,5 +1,5 @@
 phina.namespace(function() {
-  phina.define("glb.BulletSprites", {
+  phina.define("glb.BulletDrawer", {
     superClass: "phigl.InstancedDrawable",
 
     instanceData: null,

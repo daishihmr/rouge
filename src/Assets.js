@@ -3,19 +3,19 @@ phina.namespace(function() {
   phina.define("glb.Assets", {
     _static: {
       get: function(options) {
-        var assets;
-
         switch (options.assetType) {
           case "common":
             return {
               obj: {
                 "fighter.obj": "./asset/obj/fighter.obj",
+                "bit.obj": "./asset/obj/bit.obj",
                 "hex.obj": "./asset/obj/hex.obj",
                 "barrier.obj": "./asset/obj/barrier.obj",
               },
               textureSource: {
                 "fighter.png": "./asset/image/fighter.png",
-                "shot.png": "./asset/image/shot.png",
+                "bit.png": "./asset/image/bit.png",
+                "shot.png": "./asset/image/bullets.png",
                 "bullets.png": "./asset/image/bullets.png",
                 "effect.png": "./asset/image/effect.png",
                 "barrier.png": "./asset/image/barrier.png",
@@ -61,8 +61,7 @@ phina.namespace(function() {
               },
             };
           default:
-            console.log(options.assetType);
-            throw "invalid assetType";
+            throw "invalid assetType: " + options.assetType;
         }
       },
     },

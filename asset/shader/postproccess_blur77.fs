@@ -6,7 +6,7 @@ uniform vec2 canvasSize;
 varying vec2 vUv;
 
 void main(void) {
-  vec2 u = 2.0 / canvasSize * 2.0;
+  vec2 u = 1.0 / canvasSize;
 
   vec4 color = vec4(0.0);
 

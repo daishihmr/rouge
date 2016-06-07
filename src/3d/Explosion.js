@@ -43,7 +43,7 @@ phina.namespace(function() {
     small: function(x, y) {
       var glLayer = this.glLayer;
 
-      (10).times(function() {
+      (7).times(function() {
         var e = glLayer.spriteDrawer.get("effect");
         if (!e) return;
 
@@ -72,7 +72,7 @@ phina.namespace(function() {
           });
       });
 
-      (7).times(function() {
+      (2).times(function() {
         var e = glLayer.spriteDrawer.get("effect");
 
         if (!e) return;

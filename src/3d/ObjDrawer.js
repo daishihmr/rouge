@@ -8,6 +8,7 @@ phina.namespace(function() {
 
     counts: null,
     instanceData: null,
+    instanceVbo: null,
     ibos: null,
     vbos: null,
     textures: null,
@@ -22,6 +23,7 @@ phina.namespace(function() {
 
       this.counts = {};
       this.instanceData = {};
+      this.instanceVbo = {};
       this.ibos = {};
       this.vbos = {};
       this.textures = {};
@@ -89,6 +91,7 @@ phina.namespace(function() {
             0, 0, 0,
           ];
         }).flatten();
+        this.instanceVbo[objType] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW).set(instanceData);
         this.ibos[objType] = phina.asset.AssetManager.get("ibo", objType + ".obj");
         this.vbos[objType] = phina.asset.AssetManager.get("vbo", objType + ".obj");
         this.textures[objType] = phina.asset.AssetManager.get("texture", objType + ".png");
@@ -133,16 +136,23 @@ phina.namespace(function() {
       this.objTypes.forEach(function(objType) {
         var count = self.counts[objType];
         var instanceData = self.instanceData[objType];
+        var instanceVbo = self.instanceVbo[objType];
         var ibo = self.ibos[objType];
         var vbo = self.vbos[objType];
         var texture = self.textures[objType];
 
-        self.faceDrawer
-          .setIndexBuffer(ibo)
-          .setAttributeVbo(vbo)
-          .setInstanceAttributeData(instanceData);
-        self.faceDrawer.uniforms.texture.setValue(0).setTexture(texture);
-        self.faceDrawer.draw(count);
+        try {
+          instanceVbo.set(instanceData);
+          self.faceDrawer
+            .setIndexBuffer(ibo)
+            .setAttributeVbo(vbo)
+            .setInstanceAttributeVbo(instanceVbo);
+          self.faceDrawer.uniforms.texture.setValue(0).setTexture(texture);
+          self.faceDrawer.draw(count);
+        } catch (e) {
+          console.error("obj draw error", objType, instanceData.length);
+          throw e;
+        }
       });
     },
 
@@ -162,16 +172,23 @@ phina.namespace(function() {
       this.objTypes.forEach(function(objType) {
         var count = self.counts[objType];
         var instanceData = self.instanceData[objType];
+        var instanceVbo = self.instanceVbo[objType];
         var ibo = self.ibos[objType];
         var vbo = self.vbos[objType];
         var texture = self.textures[objType];
 
-        self.glowDrawer
-          .setIndexBuffer(ibo)
-          .setAttributeVbo(vbo)
-          .setInstanceAttributeData(instanceData);
-        self.glowDrawer.uniforms.texture.setValue(0).setTexture(texture);
-        self.glowDrawer.draw(count);
+        try {
+          instanceVbo.set(instanceData);
+          self.glowDrawer
+            .setIndexBuffer(ibo)
+            .setAttributeVbo(vbo)
+            .setInstanceAttributeVbo(instanceVbo);
+          self.glowDrawer.uniforms.texture.setValue(0).setTexture(texture);
+          self.glowDrawer.draw(count);
+        } catch (e) {
+          console.error("obj-glow draw error", objType, instanceData.length);
+          throw e;
+        }
       });
     },
 

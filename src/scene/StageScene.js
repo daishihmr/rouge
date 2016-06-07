@@ -25,12 +25,24 @@ phina.namespace(function() {
         },
       });
 
+      var self = this;
       var glLayer = this.glLayer;
       var uiLayer = this.uiLayer;
       var collisions = this.collisions = glb.Collisions();
       var explosion = this.explosion = glb.Explosion(glLayer);
       var player = this.player = glLayer.playerDrawer.get("fighter");
       var stage = this.stage = glb.Stage();
+
+      stage.on("enemyTask", function(e) {
+        self.launchEnemy(e.name, e.pattern, e.runner, e.x, e.y);
+      });
+      stage.on("spawnerTask", function(e) {
+        glb.Spawner(e)
+          .on("spawn", function(e) {
+            self.launchEnemy(e.name, e.pattern, e.runner, e.x, e.y);
+          })
+          .addChildTo(self);
+      });
 
       this.on("enterframe", function(e) {
         collisions.update(e.app);
@@ -55,20 +67,38 @@ phina.namespace(function() {
         });
 
       player
-        .spawn(glLayer)
+        .spawn()
+        .addChildTo(glLayer)
         .on("fireShot", function(e) {
-          collisions.addShot(e.shot);
-          if (!e.shot.has("hitEnemy")) {
-            e.shot.on("hitEnemy", function() {
-              explosion.spark(this.x, this.y - 20);
-            });
+          var shot = glLayer.spriteDrawer.get("shot");
+          if (shot) {
+            shot.spawn(e).addChildTo(glLayer);
+            collisions.addShot(shot);
+            if (!shot.has("hitEnemy")) {
+              shot
+                .on("hitEnemy", function() {
+                  explosion.small(this.x, this.y - 10);
+                });
+            }
           }
-        })
-        .addChildTo(glLayer);
+        });
       collisions.setPlayer(player);
 
-      var barrier = glLayer.playerDrawer.get("barrier");
-      barrier
+      [-2, -1, 1, 2].forEach(function(i) {
+        var bit = glLayer.playerDrawer.get("bit")
+          .spawn({
+            x: SCREEN_WIDTH / 2,
+            y: SCREEN_HEIGHT / 2,
+            scaleX: 20,
+            scaleY: 20,
+            scaleZ: 20,
+            rotZ: (-90 + i * 10).toRadian(),
+          })
+          .addChildTo(glLayer);
+        player.bits.push(bit);
+      });
+
+      var barrier = glLayer.playerDrawer.get("barrier")
         .spawn({
           scaleX: 20,
           scaleY: 20,
@@ -79,9 +109,9 @@ phina.namespace(function() {
       player.setBarrier(barrier);
 
       // TODO atdks
-      for (var i = 0; i < 10; i++) {
-        this.launchEnemy("enemyS1", 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.9) * SCREEN_HEIGHT);
-      }
+      // for (var i = 0; i < 10; i++) {
+        // this.launchEnemy("enemyS1", 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.9) * SCREEN_HEIGHT);
+      // }
 
       player.launch();
 

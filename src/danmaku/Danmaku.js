@@ -8,14 +8,9 @@ phina.namespace(function() {
       intervalRate: 1.0,
       speedRate: 15.0,
 
-      createRunner: function(name) {
-        if (!this._initialized) this.initialize();
-        return this[name].createRunner(this.config);
-      },
-
       initialize: function() {
         this._initialized = true;
-        
+
         var R = bullet({ type: 2 });
 
         // 自機狙い単発
@@ -79,6 +74,11 @@ phina.namespace(function() {
             ]),
           ]),
         });
+      },
+
+      createRunner: function(name) {
+        if (!this._initialized) this.initialize();
+        return this[name].createRunner(this.config);
       },
     },
   });

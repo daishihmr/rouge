@@ -58,9 +58,9 @@ phina.namespace(function() {
       var q = glb.GLLayer.quality;
 
       this.orthoCamera = glb.Camera()
-        .setPosition(w / 2, h * 0.5, w * 1.5)
-        .lookAt(w / 2, h / 2, 0)
-        .ortho(-w / 2, w / 2, h / 2, -h / 2, 0.1, 3000)
+        .setPosition(w * 0.5, h * 0.5, w * 1.5)
+        .lookAt(w * 0.5, h * 0.5, 0)
+        .ortho(-w * 0.5, w * 0.5, h * 0.5, -h * 0.5, 0.1, 3000)
         .calcVpMatrix();
 
       this.perseCamera = glb.Camera()
@@ -74,7 +74,7 @@ phina.namespace(function() {
       this.spriteDrawer = glb.SpritDrawer(gl, extInstancedArrays, w, h);
       this.enemyDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
       this.playerDrawer = glb.ObjDrawer(gl, extInstancedArrays, w, h);
-      this.bulletDrawer = glb.BulletSprites(gl, extInstancedArrays, w, h);
+      this.bulletDrawer = glb.BulletDrawer(gl, extInstancedArrays, w, h);
 
       this.framebufferGlow = phigl.Framebuffer(gl, sw, sh);
       this.framebufferZanzo1 = phigl.Framebuffer(gl, sw, sh);
@@ -124,10 +124,11 @@ phina.namespace(function() {
     },
 
     generateObjects: function() {
-      this.playerDrawer.addObjType("fighter", 1, "glb.Fighter");
+      this.playerDrawer.addObjType("fighter", 1, "glb.Player");
+      this.playerDrawer.addObjType("bit", 4);
       this.playerDrawer.addObjType("barrier", 1);
-      this.spriteDrawer.addObjType("shot", 20, "glb.Shot");
-      this.spriteDrawer.addObjType("effect", 300);
+      this.spriteDrawer.addObjType("shot", 160, "glb.Shot");
+      this.spriteDrawer.addObjType("effect", 3000);
     },
 
     update: function(app) {
@@ -220,6 +221,7 @@ phina.namespace(function() {
     },
 
     _static: {
+      quality: 0.5,
       quality: 1.0,
     },
   });
