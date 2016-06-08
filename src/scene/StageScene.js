@@ -77,10 +77,13 @@ phina.namespace(function() {
             if (!shot.has("hitEnemy")) {
               shot
                 .on("hitEnemy", function() {
-                  explosion.small(this.x, this.y - 10);
+                  explosion.spark(this.x, this.y - 10);
                 });
             }
           }
+        })
+        .on("launched", function() {
+          // TODO
         });
       collisions.setPlayer(player);
 
@@ -109,9 +112,14 @@ phina.namespace(function() {
       player.setBarrier(barrier);
 
       // TODO atdks
-      // for (var i = 0; i < 10; i++) {
-        // this.launchEnemy("enemyS1", 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.9) * SCREEN_HEIGHT);
-      // }
+      for (var i = 0; i < 1000; i++) {
+        var enemy = this.launchEnemy("enemyS1", 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
+        if (enemy) {
+          enemy.on("enterframe", function() {
+            this.rotateZ(0.1);
+          });
+        }
+      }
 
       player.launch();
 
@@ -123,6 +131,7 @@ phina.namespace(function() {
       if (enemy) {
         enemy
           .spawn({
+            visible: true,
             x: x,
             y: y,
           })
@@ -131,6 +140,7 @@ phina.namespace(function() {
           .addChildTo(glLayer);
 
         this.collisions.addEnemy(enemy);
+        return enemy;
       }
     },
 
@@ -139,6 +149,11 @@ phina.namespace(function() {
 
       if (app.keyboard.getKeyDown("p")) {
         app.canvas.saveAsImage();
+      }
+
+      if (app.keyboard.getKeyDown("l")) {
+        
+        this.player.launch();
       }
     },
   });

@@ -17,8 +17,8 @@ phina.namespace(function() {
       obj.faces.forEach(function(face) {
         for (var i = 1; i < face.length - 1; i++) {
           trigons.push(face[0]);
-          trigons.push(face[i + 0]);
           trigons.push(face[i + 1]);
+          trigons.push(face[i + 0]);
         }
       });
 

@@ -9,4 +9,9 @@ phina.namespace(function() {
 
   });
 
+  glb.Enemy.data["enemyS1"] = {
+    count: 100,
+    className: "glb.EnemyS1",
+  };
+
 });

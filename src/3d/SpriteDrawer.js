@@ -133,7 +133,6 @@ phina.namespace(function() {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
       gl.disable(gl.DEPTH_TEST);
-      gl.disable(gl.CULL_FACE);
 
       this.uniforms.globalScale.value = 1.0;
 

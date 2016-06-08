@@ -121,9 +121,7 @@ phina.namespace(function() {
       var gl = this.gl;
       gl.enable(gl.BLEND);
       gl.enable(gl.DEPTH_TEST);
-      gl.enable(gl.CULL_FACE);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      gl.cullFace(gl.FRONT);
 
       if (uniforms) {
         uniforms.forIn(function(key, value) {

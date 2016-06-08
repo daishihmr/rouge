@@ -160,7 +160,7 @@ phina.namespace(function() {
       var self = this;
       var gl = this.gl;
       gl.enable(gl.BLEND);
-      gl.disable(gl.DEPTH_TEST);
+      gl.enable(gl.DEPTH_TEST);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
       if (uniforms) {

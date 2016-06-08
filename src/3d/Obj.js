@@ -28,7 +28,7 @@ phina.namespace(function() {
 
     spawn: function(options) {
       options = {}.$extend({
-        visible: true,
+        visible: false,
         x: 0,
         y: 0,
         z: 0,
@@ -58,7 +58,26 @@ phina.namespace(function() {
       quat.rotateX(this.quaternion, this.quaternion, options.rotX);
 
       this.dirty = true;
-      this.update();
+
+      instanceData[index + 0] = this.visible ? 1 : 0;
+
+      if (this.dirty) {
+        mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale);
+
+        instanceData[index + 1] = this.matrix[0];
+        instanceData[index + 2] = this.matrix[1];
+        instanceData[index + 3] = this.matrix[2];
+        instanceData[index + 4] = this.matrix[4];
+        instanceData[index + 5] = this.matrix[5];
+        instanceData[index + 6] = this.matrix[6];
+        instanceData[index + 7] = this.matrix[8];
+        instanceData[index + 8] = this.matrix[9];
+        instanceData[index + 9] = this.matrix[10];
+        instanceData[index + 10] = this.matrix[12];
+        instanceData[index + 11] = this.matrix[13];
+        instanceData[index + 12] = this.matrix[14];
+        this.dirty = false;
+      }
 
       return this;
     },
@@ -67,10 +86,11 @@ phina.namespace(function() {
       var index = this.index;
       var instanceData = this.instanceData;
 
+      instanceData[index + 0] = this.visible ? 1 : 0;
+
       if (this.dirty) {
         mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale);
 
-        instanceData[index + 0] = this.visible ? 1 : 0;
         instanceData[index + 1] = this.matrix[0];
         instanceData[index + 2] = this.matrix[1];
         instanceData[index + 3] = this.matrix[2];
@@ -153,6 +173,7 @@ phina.namespace(function() {
           this.dirty = true;
         }
       },
+
       scaleX: {
         get: function() {
           return this.scale[0];

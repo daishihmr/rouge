@@ -45,9 +45,10 @@ phina.namespace(function() {
       var extInstancedArrays = phigl.Extensions.getInstancedArrays(gl);
       var extVertexArrayObject = phigl.Extensions.getVertexArrayObject(gl);
 
-      this.gl.viewport(0, 0, this.domElement.width, this.domElement.height);
-      this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
-      this.gl.clearDepth(1.0);
+      gl.viewport(0, 0, this.domElement.width, this.domElement.height);
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.clearDepth(1.0);
+      gl.disable(gl.CULL_FACE);
 
       var cw = this.domElement.width;
       var ch = this.domElement.height;
@@ -102,6 +103,7 @@ phina.namespace(function() {
           if (hex) {
             hex
               .spawn({
+                visible: true,
                 x: x * unit + z % 2,
                 y: 0,
                 z: z * unit * 1 / Math.sqrt(3) * 1.5,
@@ -166,7 +168,7 @@ phina.namespace(function() {
       this.framebufferMain.bind();
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.terrain.render({
-        diffuseColor: [0.12, 0.12, 0.12 * 2.6, 0.75],
+        diffuseColor: [0.12, 0.12, 0.12 * 2.6, 1.0],
       }.$extend(pu));
       this.itemDrawer.render(ou);
       this.enemyDrawer.render({
@@ -221,7 +223,7 @@ phina.namespace(function() {
     },
 
     _static: {
-      quality: 0.5,
+      // quality: 0.5,
       quality: 1.0,
     },
   });
