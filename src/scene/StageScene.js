@@ -101,14 +101,7 @@ phina.namespace(function() {
         player.bits.push(bit);
       });
 
-      var barrier = glLayer.playerDrawer.get("barrier")
-        .spawn({
-          scaleX: 20,
-          scaleY: 20,
-          scaleZ: 20,
-          rotZ: (-90).toRadian(),
-        })
-        .addChildTo(glLayer);
+      var barrier = glLayer.playerDrawer.get("barrier").addChildTo(glLayer);
       player.setBarrier(barrier);
 
       // TODO atdks

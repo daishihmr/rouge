@@ -7,13 +7,17 @@ attribute vec3 instanceMatrix0;
 attribute vec3 instanceMatrix1;
 attribute vec3 instanceMatrix2;
 attribute vec3 instanceMatrix3;
+attribute float instanceAlpha;
 
 uniform mat4 vpMatrix;
 
 varying vec2 vUv;
+varying float vAlpha;
 
 void main(void) {
   vUv = uv;
+  vAlpha = instanceAlpha;
+
   vec3 nc = normal;
   
   if (instanceVisible < 0.5) {

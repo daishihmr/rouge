@@ -1081,6 +1081,7 @@ phina.namespace(function() {
     quaternion: null,
     scale: null,
     matrix: null,
+    alpha: 1,
 
     dirty: true,
 
@@ -1108,6 +1109,7 @@ phina.namespace(function() {
         scaleX: OBJ_SCALE,
         scaleY: OBJ_SCALE,
         scaleZ: OBJ_SCALE,
+        alpha: 1,
       }, options);
 
       var index = this.index;
@@ -1121,6 +1123,7 @@ phina.namespace(function() {
       this.scaleX = options.scaleX;
       this.scaleY = options.scaleY;
       this.scaleZ = options.scaleZ;
+      this.alpha = options.alpha;
 
       quat.identity(this.quaternion);
       quat.rotateZ(this.quaternion, this.quaternion, options.rotZ);
@@ -1146,6 +1149,7 @@ phina.namespace(function() {
         instanceData[index + 10] = this.matrix[12];
         instanceData[index + 11] = this.matrix[13];
         instanceData[index + 12] = this.matrix[14];
+        instanceData[index + 13] = this.alpha;
         this.dirty = false;
       }
 
@@ -1173,6 +1177,7 @@ phina.namespace(function() {
         instanceData[index + 10] = this.matrix[12];
         instanceData[index + 11] = this.matrix[13];
         instanceData[index + 12] = this.matrix[14];
+        instanceData[index + 13] = this.alpha;
         this.dirty = false;
       }
 
@@ -1395,7 +1400,8 @@ phina.namespace(function() {
           "instanceMatrix0",
           "instanceMatrix1",
           "instanceMatrix2",
-          "instanceMatrix3"
+          "instanceMatrix3",
+          "instanceAlpha"
         )
         .setUniforms(
           "vpMatrix",
@@ -1414,7 +1420,8 @@ phina.namespace(function() {
           "instanceMatrix0",
           "instanceMatrix1",
           "instanceMatrix2",
-          "instanceMatrix3"
+          "instanceMatrix3",
+          "instanceAlpha"
         )
         .setUniforms(
           "vpMatrix",
@@ -1447,6 +1454,8 @@ phina.namespace(function() {
             0, 0, 1,
             // m3
             0, 0, 0,
+            // alpha
+            1,
           ];
         }).flatten();
         this.instanceVbo[objType] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW).set(instanceData);
@@ -1630,6 +1639,12 @@ phina.namespace(function() {
 
     setBarrier: function(barrier) {
       this.barrier = barrier;
+      barrier.spawn({
+        scaleX: 20,
+        scaleY: 20,
+        scaleZ: 20,
+        rotZ: (-90).toRadian(),
+      });
       return this;
     },
 
@@ -1704,6 +1719,7 @@ phina.namespace(function() {
         instanceData[index + 10] = this.matrix[12];
         instanceData[index + 11] = this.matrix[13];
         instanceData[index + 12] = this.matrix[14];
+        instanceData[index + 13] = this.alpha;
         this.dirty = false;
       }
 
@@ -2380,7 +2396,9 @@ phina.namespace(function() {
           // m2
           0, 0, 1,
           // m3
-          0, 0, 0
+          0, 0, 0,
+          // alpha
+          1
         );
       }
 
@@ -2394,7 +2412,8 @@ phina.namespace(function() {
           "instanceMatrix0",
           "instanceMatrix1",
           "instanceMatrix2",
-          "instanceMatrix3"
+          "instanceMatrix3",
+          "instanceAlpha"
         )
         .setUniforms(
           "vpMatrix",
@@ -2415,7 +2434,8 @@ phina.namespace(function() {
           "instanceMatrix0",
           "instanceMatrix1",
           "instanceMatrix2",
-          "instanceMatrix3"
+          "instanceMatrix3",
+          "instanceAlpha"
         )
         .setUniforms(
           "vpMatrix",
@@ -2743,11 +2763,11 @@ phina.namespace(function() {
       var index = this.index;
       var instanceData = this.instanceData;
 
+      instanceData[index + 0] = this.visible ? 1 : 0;
       if (this.dirty) {
         quat.mul(tempQuat, RX, this.quaternion);
         mat4.fromRotationTranslationScale(this.matrix, tempQuat, this.position, this.scale);
 
-        instanceData[index + 0] = this.visible ? 1 : 0;
         instanceData[index + 1] = this.matrix[0];
         instanceData[index + 2] = this.matrix[1];
         instanceData[index + 3] = this.matrix[2];
@@ -2760,6 +2780,7 @@ phina.namespace(function() {
         instanceData[index + 10] = this.matrix[12];
         instanceData[index + 11] = this.matrix[13];
         instanceData[index + 12] = this.matrix[14];
+        instanceData[index + 13] = this.alpha;
         this.dirty = false;
       }
 
@@ -3224,14 +3245,7 @@ phina.namespace(function() {
         player.bits.push(bit);
       });
 
-      var barrier = glLayer.playerDrawer.get("barrier")
-        .spawn({
-          scaleX: 20,
-          scaleY: 20,
-          scaleZ: 20,
-          rotZ: (-90).toRadian(),
-        })
-        .addChildTo(glLayer);
+      var barrier = glLayer.playerDrawer.get("barrier").addChildTo(glLayer);
       player.setBarrier(barrier);
 
       // TODO atdks

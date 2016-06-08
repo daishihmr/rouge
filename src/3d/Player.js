@@ -74,6 +74,12 @@ phina.namespace(function() {
 
     setBarrier: function(barrier) {
       this.barrier = barrier;
+      barrier.spawn({
+        scaleX: 20,
+        scaleY: 20,
+        scaleZ: 20,
+        rotZ: (-90).toRadian(),
+      });
       return this;
     },
 
@@ -148,6 +154,7 @@ phina.namespace(function() {
         instanceData[index + 10] = this.matrix[12];
         instanceData[index + 11] = this.matrix[13];
         instanceData[index + 12] = this.matrix[14];
+        instanceData[index + 13] = this.alpha;
         this.dirty = false;
       }
 

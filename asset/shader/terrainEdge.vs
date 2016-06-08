@@ -5,16 +5,20 @@ attribute vec3 instanceMatrix0;
 attribute vec3 instanceMatrix1;
 attribute vec3 instanceMatrix2;
 attribute vec3 instanceMatrix3;
+attribute float instanceAlpha;
 
 uniform mat4 vpMatrix;
 uniform vec3 cameraPosition;
 
 varying float vFog;
+varying float vAlpha;
 
 const float fogStart = 1.0;
 const float fogEnd = 40.0;
 
 void main(void) {
+  vAlpha = instanceAlpha;
+
   if (instanceVisible < 0.5) {
     gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
   } else {

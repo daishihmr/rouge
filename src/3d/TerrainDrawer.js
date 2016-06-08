@@ -27,7 +27,9 @@ phina.namespace(function() {
           // m2
           0, 0, 1,
           // m3
-          0, 0, 0
+          0, 0, 0,
+          // alpha
+          1
         );
       }
 
@@ -41,7 +43,8 @@ phina.namespace(function() {
           "instanceMatrix0",
           "instanceMatrix1",
           "instanceMatrix2",
-          "instanceMatrix3"
+          "instanceMatrix3",
+          "instanceAlpha"
         )
         .setUniforms(
           "vpMatrix",
@@ -62,7 +65,8 @@ phina.namespace(function() {
           "instanceMatrix0",
           "instanceMatrix1",
           "instanceMatrix2",
-          "instanceMatrix3"
+          "instanceMatrix3",
+          "instanceAlpha"
         )
         .setUniforms(
           "vpMatrix",

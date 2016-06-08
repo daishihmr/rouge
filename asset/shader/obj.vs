@@ -7,6 +7,7 @@ attribute vec3 instanceMatrix0;
 attribute vec3 instanceMatrix1;
 attribute vec3 instanceMatrix2;
 attribute vec3 instanceMatrix3;
+attribute float instanceAlpha;
 
 uniform mat4 vpMatrix;
 uniform vec3 lightDirection;
@@ -16,6 +17,7 @@ uniform vec3 cameraPosition;
 
 varying vec2 vUv;
 varying vec4 vColor;
+varying float vAlpha;
 
 // https://github.com/stackgl/glsl-inverse
 mat4 inverse(mat4 m) {
@@ -61,6 +63,7 @@ mat4 inverse(mat4 m) {
 
 void main(void) {
   vUv = uv;
+  vAlpha = instanceAlpha;
   
   if (instanceVisible < 0.5) {
     gl_Position = vec4(0.0, 0.0, 0.0, 1.0);

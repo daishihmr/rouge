@@ -39,11 +39,11 @@ phina.namespace(function() {
       var index = this.index;
       var instanceData = this.instanceData;
 
+      instanceData[index + 0] = this.visible ? 1 : 0;
       if (this.dirty) {
         quat.mul(tempQuat, RX, this.quaternion);
         mat4.fromRotationTranslationScale(this.matrix, tempQuat, this.position, this.scale);
 
-        instanceData[index + 0] = this.visible ? 1 : 0;
         instanceData[index + 1] = this.matrix[0];
         instanceData[index + 2] = this.matrix[1];
         instanceData[index + 3] = this.matrix[2];
@@ -56,6 +56,7 @@ phina.namespace(function() {
         instanceData[index + 10] = this.matrix[12];
         instanceData[index + 11] = this.matrix[13];
         instanceData[index + 12] = this.matrix[14];
+        instanceData[index + 13] = this.alpha;
         this.dirty = false;
       }
 

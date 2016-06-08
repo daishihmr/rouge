@@ -3,6 +3,7 @@ precision mediump float;
 uniform sampler2D texture;
 
 varying vec2 vUv;
+varying float vAlpha;
 
 vec3 rgb2hsv(vec3 c) {
   vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -18,8 +19,8 @@ void main(void){
   vec4 color = texture2D(texture, vUv);
   vec3 hsv = rgb2hsv(color.rgb);
   if (hsv.y > 0.6) {
-    gl_FragColor = color;
+    gl_FragColor = color * vec4(vec3(1.0), vAlpha);
   } else {
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0) * vec4(vec3(1.0), vAlpha);
   }
 }
