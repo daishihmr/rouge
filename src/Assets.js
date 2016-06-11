@@ -15,7 +15,6 @@ phina.namespace(function() {
               textureSource: {
                 "fighter.png": "./asset/image/fighter.png",
                 "bit.png": "./asset/image/bit.png",
-                "shot.png": "./asset/image/bullets.png",
                 "bullets.png": "./asset/image/bullets.png",
                 "effect.png": "./asset/image/effect.png",
                 "barrier.png": "./asset/image/barrier.png",

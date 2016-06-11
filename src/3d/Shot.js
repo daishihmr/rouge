@@ -1,4 +1,5 @@
 phina.namespace(function() {
+
   phina.define("glb.Shot", {
     superClass: "glb.Sprite",
     

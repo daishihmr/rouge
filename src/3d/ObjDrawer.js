@@ -70,7 +70,7 @@ phina.namespace(function() {
       this.ambientColor = [0.4, 0.4, 0.4, 1.0];
     },
 
-    addObjType: function(objType, count, className) {
+    addObjType: function(objType, objAssetName, count, className) {
       className = className || "glb.Obj";
 
       count = count || 1;
@@ -96,9 +96,9 @@ phina.namespace(function() {
           ];
         }).flatten();
         this.instanceVbo[objType] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW).set(instanceData);
-        this.ibos[objType] = phina.asset.AssetManager.get("ibo", objType + ".obj");
-        this.vbos[objType] = phina.asset.AssetManager.get("vbo", objType + ".obj");
-        this.textures[objType] = phina.asset.AssetManager.get("texture", objType + ".png");
+        this.ibos[objType] = phina.asset.AssetManager.get("ibo", objAssetName + ".obj");
+        this.vbos[objType] = phina.asset.AssetManager.get("vbo", objAssetName + ".obj");
+        this.textures[objType] = phina.asset.AssetManager.get("texture", objAssetName + ".png");
 
         var ObjClass = phina.using(className);
         this.pools[objType] = Array.range(count).map(function(id) {

@@ -126,11 +126,12 @@ phina.namespace(function() {
     },
 
     generateObjects: function() {
-      this.playerDrawer.addObjType("fighter", 1, "glb.Player");
-      this.playerDrawer.addObjType("bit", 4);
-      this.playerDrawer.addObjType("barrier", 1);
-      this.spriteDrawer.addObjType("shot", 160, "glb.Shot");
-      this.spriteDrawer.addObjType("effect", 3000);
+      this.playerDrawer.addObjType("fighter", "fighter", 1, "glb.Player");
+      this.playerDrawer.addObjType("bit", "bit", 4);
+      this.playerDrawer.addObjType("barrier", "barrier", 1);
+      this.spriteDrawer.addObjType("shot", "effect", 160, "glb.Shot");
+      this.spriteDrawer.addObjType("laser", "effect", 20, "glb.Laser");
+      this.spriteDrawer.addObjType("effect", "effect", 3000);
     },
 
     update: function(app) {

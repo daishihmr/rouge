@@ -12,6 +12,7 @@ phina.namespace(function() {
         this._initialized = true;
 
         var R = bullet({ type: 2 });
+        var B = bullet({ type: 10 });
 
         // 自機狙い単発
         this.basic0 = new bulletml.Root({
@@ -19,6 +20,8 @@ phina.namespace(function() {
             repeat(Infinity, [
               interval(30),
               fire(speed(1), R),
+              interval(30),
+              fire(speed(1), B),
             ]),
           ]),
         });

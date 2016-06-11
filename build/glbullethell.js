@@ -650,12 +650,14 @@ phina.namespace(function() {
         if (!e) return;
         var a = Math.randfloat(0, Math.PI * 2);
         var r = Math.randfloat(75, 125);
+        var s = Math.randfloat(0.1, 0.2);
         e
           .spawn({
             x: x + Math.cos(a) * r * 0.1,
             y: y + Math.sin(a) * r * 0.1,
             rotation: 0,
-            scale: Math.randfloat(0.1, 0.2),
+            scaleX: s,
+            scaleY: s,
             alpha: 5,
           })
           .addChildTo(glLayer);
@@ -687,8 +689,9 @@ phina.namespace(function() {
             x: x + Math.cos(a) * r * 0.2,
             y: y + Math.sin(a) * r * 0.2,
             rotation: 0,
-            scale: 1,
-            alpha: 3,
+            scaleX: 1,
+            scaleY: 1,
+            alpha: 1,
           })
           .addChildTo(glLayer);
 
@@ -697,7 +700,8 @@ phina.namespace(function() {
           .to({
             x: x + Math.cos(a) * r,
             y: y + Math.sin(a) * r,
-            scale: 3,
+            scaleX: 3,
+            scaleY: 3,
             alpha: 0,
           }, 333, "easeOutQuad")
           .call(function() {
@@ -711,12 +715,14 @@ phina.namespace(function() {
         if (!e) return;
         var a = Math.randfloat(0, Math.PI * 2);
         var r = Math.randfloat(75, 125);
+        var s = Math.randfloat(0.2, 0.4);
         e
           .spawn({
             x: x + Math.cos(a) * r * 0.1,
             y: y + Math.sin(a) * r * 0.1,
             rotation: 0,
-            scale: Math.randfloat(0.2, 0.4),
+            scaleX: s,
+            scaleY: s,
             alpha: 5,
           })
           .addChildTo(glLayer);
@@ -865,11 +871,12 @@ phina.namespace(function() {
     },
 
     generateObjects: function() {
-      this.playerDrawer.addObjType("fighter", 1, "glb.Player");
-      this.playerDrawer.addObjType("bit", 4);
-      this.playerDrawer.addObjType("barrier", 1);
-      this.spriteDrawer.addObjType("shot", 160, "glb.Shot");
-      this.spriteDrawer.addObjType("effect", 3000);
+      this.playerDrawer.addObjType("fighter", "fighter", 1, "glb.Player");
+      this.playerDrawer.addObjType("bit", "bit", 4);
+      this.playerDrawer.addObjType("barrier", "barrier", 1);
+      this.spriteDrawer.addObjType("shot", "effect", 160, "glb.Shot");
+      this.spriteDrawer.addObjType("laser", "effect", 20, "glb.Laser");
+      this.spriteDrawer.addObjType("effect", "effect", 3000);
     },
 
     update: function(app) {
@@ -1062,6 +1069,49 @@ phina.namespace(function() {
       var temp = this.current;
       this.current = this.before;
       this.before = temp;
+    },
+
+  });
+
+});
+
+phina.namespace(function() {
+  
+  phina.define("glb.Laser", {
+    superClass: "glb.Shot",
+    
+    player: null,
+    iScaleX: 1,
+    iScaleY: 1,
+    fScaleX: 1,
+    fScaleY: 1,
+    
+    init: function(id, instanceData, instanceStride) {
+      this.superInit(id, instanceData, instanceStride);
+    },
+
+    spawn: function(options) {
+      this.dx = options.dx;
+      this.dy = options.dy;
+      this.player = options.player;
+      
+      glb.Sprite.prototype.spawn.call(this, options);
+
+      this.iScaleX = this.scaleX * 2;
+      this.iScaleY = this.scaleY * 2;
+      this.fScaleX = this.scaleX * 1;
+      this.fScaleY = this.scaleY * 1;
+
+      return this;
+    },
+
+    update: function(app) {
+      this.x = this.player.x;
+      this.y += this.dy;
+      var t = Math.clamp(this.age / 4, 0.0, 1.0);
+      // this.scaleX = this.iScaleX + (this.fScaleX - this.iScaleX) * t;
+      this.scaleY = this.iScaleY + (this.fScaleY - this.iScaleY) * t;
+      glb.Sprite.prototype.update.call(this, app);
     },
 
   });
@@ -1433,7 +1483,7 @@ phina.namespace(function() {
       this.ambientColor = [0.4, 0.4, 0.4, 1.0];
     },
 
-    addObjType: function(objType, count, className) {
+    addObjType: function(objType, objAssetName, count, className) {
       className = className || "glb.Obj";
 
       count = count || 1;
@@ -1459,9 +1509,9 @@ phina.namespace(function() {
           ];
         }).flatten();
         this.instanceVbo[objType] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW).set(instanceData);
-        this.ibos[objType] = phina.asset.AssetManager.get("ibo", objType + ".obj");
-        this.vbos[objType] = phina.asset.AssetManager.get("vbo", objType + ".obj");
-        this.textures[objType] = phina.asset.AssetManager.get("texture", objType + ".png");
+        this.ibos[objType] = phina.asset.AssetManager.get("ibo", objAssetName + ".obj");
+        this.vbos[objType] = phina.asset.AssetManager.get("vbo", objAssetName + ".obj");
+        this.textures[objType] = phina.asset.AssetManager.get("texture", objAssetName + ".png");
 
         var ObjClass = phina.using(className);
         this.pools[objType] = Array.range(count).map(function(id) {
@@ -1773,7 +1823,7 @@ phina.namespace(function() {
         }
       }
 
-      if ((kb.getKey("SHOT") || gp.getKey("SHOT")) && frame % 2 === 0) {
+      if ((kb.getKey("SHOT") || gp.getKey("SHOT")) /* && frame % 2 === 0*/ ) {
         this.shot();
       }
     },
@@ -1787,19 +1837,39 @@ phina.namespace(function() {
     },
 
     shot: function() {
-      for (var i = -2; i < 2; i++) {
-        this.flare("fireShot", {
-          x: this.x + i * 20 + 10,
-          y: this.y - 20,
-          rotation: Math.PI * -0.5,
-          scale: 4,
-          frameX: 0,
-          frameY: 1,
-          alpha: 0.5,
-          dx: 0,
-          dy: -60,
-        });
-      }
+      var f = [6, 7, 8].pickup();
+      this.flare("fireLaser", {
+        x: this.x,
+        y: this.y - 20,
+        rotation: Math.PI * -0.5,
+        scaleX: 12,
+        scaleY: Math.randfloat(1.8, 2.2),
+        frameX: f % 8,
+        frameY: ~~(f / 8),
+        alpha: 1.0,
+        dx: 0,
+        dy: -100,
+        player: this,
+      });
+      
+      this._shot();
+    },
+
+    _shot: function() {
+      // for (var i = -2; i < 2; i++) {
+      //   this.flare("fireShot", {
+      //     x: this.x + i * 20 + 10,
+      //     y: this.y - 20,
+      //     rotation: Math.PI * -0.5,
+      //     scaleX: 4,
+      //     scaleY: 4,
+      //     frameX: [1, 2, 3, 4].pickup(),
+      //     frameY: 1,
+      //     alpha: 1.0,
+      //     dx: 0,
+      //     dy: -60,
+      //   });
+      // }
 
       var v = this.shift;
       if (v < 0) return;
@@ -1830,10 +1900,11 @@ phina.namespace(function() {
             x: this.x + x + cw * 15 * j + cr * 30,
             y: this.y + y + sw * 15 * j + sr * 30,
             rotation: d,
-            scale: 4,
-            frameX: 3,
+            scaleX: 4,
+            scaleY: 4,
+            frameX: [1, 2, 3, 4].pickup(),
             frameY: 1,
-            alpha: 0.5,
+            alpha: 1.0,
             dx: cr * 60,
             dy: sr * 60,
           });
@@ -2077,6 +2148,7 @@ phina.namespace(function() {
 });
 
 phina.namespace(function() {
+
   phina.define("glb.Shot", {
     superClass: "glb.Sprite",
     
@@ -2153,14 +2225,15 @@ phina.namespace(function() {
         frameY: 0,
         alpha: 1,
       });
-      
+
       var index = this.index;
       var instanceData = this.instanceData;
 
       this.x = options.x;
       this.y = options.y;
       this.rotation = options.rotation;
-      this.scale = options.scale;
+      this.scaleX = options.scaleX;
+      this.scaleY = options.scaleY;
       this.frameX = options.frameX;
       this.frameY = options.frameY;
       this.alpha = options.alpha;
@@ -2169,10 +2242,11 @@ phina.namespace(function() {
       instanceData[index + 1] = this.x; // position.x
       instanceData[index + 2] = this.y; // position.y
       instanceData[index + 3] = this.rotation; // rotation
-      instanceData[index + 4] = this.scale; // scale
-      instanceData[index + 5] = this.frameX; // frame.x
-      instanceData[index + 6] = this.frameY; // frame.y
-      instanceData[index + 7] = this.alpha; // alpha
+      instanceData[index + 4] = this.scaleX; // scale
+      instanceData[index + 5] = this.scaleY; // scale
+      instanceData[index + 6] = this.frameX; // frame.x
+      instanceData[index + 7] = this.frameY; // frame.y
+      instanceData[index + 8] = this.alpha; // alpha
 
       this.age = 0;
 
@@ -2191,10 +2265,11 @@ phina.namespace(function() {
       instanceData[index + 1] = this.x; // position.x
       instanceData[index + 2] = this.y; // position.y
       instanceData[index + 3] = this.rotation; // rotation
-      instanceData[index + 4] = this.scale; // scale
-      instanceData[index + 5] = this.frameX; // frame.x
-      instanceData[index + 6] = this.frameY; // frame.y
-      instanceData[index + 7] = this.alpha; // alpha
+      instanceData[index + 4] = this.scaleX; // scale
+      instanceData[index + 5] = this.scaleY; // scale
+      instanceData[index + 6] = this.frameX; // frame.x
+      instanceData[index + 7] = this.frameY; // frame.y
+      instanceData[index + 8] = this.alpha; // alpha
 
       this.age += 1;
     },
@@ -2217,6 +2292,8 @@ phina.namespace(function() {
     instanceData: null,
     textures: null,
     pools: null,
+
+    additiveBlending: true,
 
     init: function(gl, ext, w, h) {
       this.superInit(gl, ext);
@@ -2250,13 +2327,13 @@ phina.namespace(function() {
           unitSize: 2,
           data: [
             //
-            0, 32 / 256,
+            0, 1 / 8,
             //
-            32 / 256, 32 / 256,
+            1 / 8, 1 / 8,
             //
             0, 0,
             //
-            32 / 256, 0,
+            1 / 8, 0,
           ]
         }, ])
         .setInstanceAttributes(
@@ -2278,16 +2355,16 @@ phina.namespace(function() {
       this.uniforms.globalScale.setValue(1.0);
     },
 
-    addObjType: function(textureName, count, className) {
+    addObjType: function(objName, textureName, count, className) {
       className = className || "glb.Sprite";
 
       count = count || 1;
       var self = this;
       var instanceStride = this.instanceStride / 4;
 
-      if (!this.objTypes.contains(textureName)) {
-        this.counts[textureName] = count;
-        var instanceData = this.instanceData[textureName] = Array.range(count).map(function(i) {
+      if (!this.objTypes.contains(objName)) {
+        this.counts[objName] = count;
+        var instanceData = this.instanceData[objName] = Array.range(count).map(function(i) {
           return [
             // visible
             0,
@@ -2301,19 +2378,19 @@ phina.namespace(function() {
             0, 0, 0,
           ];
         }).flatten();
-        this.instanceVbos[textureName] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW);
+        this.instanceVbos[objName] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW);
 
-        this.textures[textureName] = phina.asset.AssetManager.get("texture", textureName + ".png");
+        this.textures[objName] = phina.asset.AssetManager.get("texture", textureName + ".png");
 
         var ObjClass = phina.using(className);
-        this.pools[textureName] = Array.range(count).map(function(id) {
+        this.pools[objName] = Array.range(count).map(function(id) {
           return ObjClass(id, instanceData, instanceStride)
             .on("removed", function() {
-              self.pools[textureName].push(this);
+              self.pools[objName].push(this);
             });
         });
 
-        this.objTypes.push(textureName);
+        this.objTypes.push(objName);
       }
     },
 
@@ -2329,17 +2406,20 @@ phina.namespace(function() {
       return texture;
     },
 
-    get: function(textureName) {
-      return this.pools[textureName].shift();
+    get: function(objName) {
+      return this.pools[objName].shift();
     },
 
-    update: function() {
-    },
+    update: function() {},
 
     render: function(uniforms) {
       var gl = this.gl;
       gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      if (this.additiveBlending) {
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      } else {
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      }
       gl.disable(gl.DEPTH_TEST);
 
       this.uniforms.globalScale.value = 1.0;
@@ -2350,11 +2430,11 @@ phina.namespace(function() {
         }.bind(this));
       }
       var self = this;
-      this.objTypes.forEach(function(textureName) {
-        var count = self.counts[textureName];
-        var instanceData = self.instanceData[textureName];
-        var instanceVbo = self.instanceVbos[textureName];
-        var texture = self.textures[textureName];
+      this.objTypes.forEach(function(objName) {
+        var count = self.counts[objName];
+        var instanceData = self.instanceData[objName];
+        var instanceVbo = self.instanceVbos[objName];
+        var texture = self.textures[objName];
 
         instanceVbo.set(instanceData);
 
@@ -2543,7 +2623,6 @@ phina.namespace(function() {
               textureSource: {
                 "fighter.png": "./asset/image/fighter.png",
                 "bit.png": "./asset/image/bit.png",
-                "shot.png": "./asset/image/bullets.png",
                 "bullets.png": "./asset/image/bullets.png",
                 "effect.png": "./asset/image/effect.png",
                 "barrier.png": "./asset/image/barrier.png",
@@ -2611,6 +2690,7 @@ phina.namespace(function() {
         this._initialized = true;
 
         var R = bullet({ type: 2 });
+        var B = bullet({ type: 10 });
 
         // 自機狙い単発
         this.basic0 = new bulletml.Root({
@@ -2618,6 +2698,8 @@ phina.namespace(function() {
             repeat(Infinity, [
               interval(30),
               fire(speed(1), R),
+              interval(30),
+              fire(speed(1), B),
             ]),
           ]),
         });
@@ -3207,7 +3289,7 @@ phina.namespace(function() {
         })
         .forEach(function(key) {
           var d = glb.Enemy.data[key] || {};
-          glLayer.enemyDrawer.addObjType(key, d.count || 100, d.className || "glb.Enemy");
+          glLayer.enemyDrawer.addObjType(key, key, d.count || 100, d.className || "glb.Enemy");
         });
 
       player
@@ -3222,6 +3304,19 @@ phina.namespace(function() {
               shot
                 .on("hitEnemy", function() {
                   explosion.spark(this.x, this.y - 10);
+                });
+            }
+          }
+        })
+        .on("fireLaser", function(e) {
+          var laser = glLayer.spriteDrawer.get("laser");
+          if (laser) {
+            laser.spawn(e).addChildTo(glLayer);
+            collisions.addShot(laser);
+            if (!laser.has("hitEnemy")) {
+              laser
+                .on("hitEnemy", function() {
+                  explosion.small(this.x, this.y);
                 });
             }
           }
@@ -3249,7 +3344,7 @@ phina.namespace(function() {
       player.setBarrier(barrier);
 
       // TODO atdks
-      for (var i = 0; i < 1000; i++) {
+      for (var i = 0; i < 1; i++) {
         var enemy = this.launchEnemy("enemyS1", 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
         if (enemy) {
           enemy.on("enterframe", function() {
@@ -3289,7 +3384,7 @@ phina.namespace(function() {
       }
 
       if (app.keyboard.getKeyDown("l")) {
-        
+
         this.player.launch();
       }
     },

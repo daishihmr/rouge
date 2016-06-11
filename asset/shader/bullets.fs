@@ -18,6 +18,6 @@ void main(void){
   if (aura.a > tc.a) {
     gl_FragColor = aura;
   } else {
-    gl_FragColor = vec4(tc.rgb * vInstanceBrightness, tc.a);
+    gl_FragColor = vec4(tc.rgb * vInstanceBrightness, tc.a) * vec4(1.2, 0.8, 0.8, 1.0);
   }
 }

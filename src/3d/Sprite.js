@@ -30,14 +30,15 @@ phina.namespace(function() {
         frameY: 0,
         alpha: 1,
       });
-      
+
       var index = this.index;
       var instanceData = this.instanceData;
 
       this.x = options.x;
       this.y = options.y;
       this.rotation = options.rotation;
-      this.scale = options.scale;
+      this.scaleX = options.scaleX;
+      this.scaleY = options.scaleY;
       this.frameX = options.frameX;
       this.frameY = options.frameY;
       this.alpha = options.alpha;
@@ -46,10 +47,11 @@ phina.namespace(function() {
       instanceData[index + 1] = this.x; // position.x
       instanceData[index + 2] = this.y; // position.y
       instanceData[index + 3] = this.rotation; // rotation
-      instanceData[index + 4] = this.scale; // scale
-      instanceData[index + 5] = this.frameX; // frame.x
-      instanceData[index + 6] = this.frameY; // frame.y
-      instanceData[index + 7] = this.alpha; // alpha
+      instanceData[index + 4] = this.scaleX; // scale
+      instanceData[index + 5] = this.scaleY; // scale
+      instanceData[index + 6] = this.frameX; // frame.x
+      instanceData[index + 7] = this.frameY; // frame.y
+      instanceData[index + 8] = this.alpha; // alpha
 
       this.age = 0;
 
@@ -68,10 +70,11 @@ phina.namespace(function() {
       instanceData[index + 1] = this.x; // position.x
       instanceData[index + 2] = this.y; // position.y
       instanceData[index + 3] = this.rotation; // rotation
-      instanceData[index + 4] = this.scale; // scale
-      instanceData[index + 5] = this.frameX; // frame.x
-      instanceData[index + 6] = this.frameY; // frame.y
-      instanceData[index + 7] = this.alpha; // alpha
+      instanceData[index + 4] = this.scaleX; // scale
+      instanceData[index + 5] = this.scaleY; // scale
+      instanceData[index + 6] = this.frameX; // frame.x
+      instanceData[index + 7] = this.frameY; // frame.y
+      instanceData[index + 8] = this.alpha; // alpha
 
       this.age += 1;
     },

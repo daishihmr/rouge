@@ -10,6 +10,8 @@ phina.namespace(function() {
     textures: null,
     pools: null,
 
+    additiveBlending: true,
+
     init: function(gl, ext, w, h) {
       this.superInit(gl, ext);
 
@@ -42,13 +44,13 @@ phina.namespace(function() {
           unitSize: 2,
           data: [
             //
-            0, 32 / 256,
+            0, 1 / 8,
             //
-            32 / 256, 32 / 256,
+            1 / 8, 1 / 8,
             //
             0, 0,
             //
-            32 / 256, 0,
+            1 / 8, 0,
           ]
         }, ])
         .setInstanceAttributes(
@@ -70,16 +72,16 @@ phina.namespace(function() {
       this.uniforms.globalScale.setValue(1.0);
     },
 
-    addObjType: function(textureName, count, className) {
+    addObjType: function(objName, textureName, count, className) {
       className = className || "glb.Sprite";
 
       count = count || 1;
       var self = this;
       var instanceStride = this.instanceStride / 4;
 
-      if (!this.objTypes.contains(textureName)) {
-        this.counts[textureName] = count;
-        var instanceData = this.instanceData[textureName] = Array.range(count).map(function(i) {
+      if (!this.objTypes.contains(objName)) {
+        this.counts[objName] = count;
+        var instanceData = this.instanceData[objName] = Array.range(count).map(function(i) {
           return [
             // visible
             0,
@@ -93,19 +95,19 @@ phina.namespace(function() {
             0, 0, 0,
           ];
         }).flatten();
-        this.instanceVbos[textureName] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW);
+        this.instanceVbos[objName] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW);
 
-        this.textures[textureName] = phina.asset.AssetManager.get("texture", textureName + ".png");
+        this.textures[objName] = phina.asset.AssetManager.get("texture", textureName + ".png");
 
         var ObjClass = phina.using(className);
-        this.pools[textureName] = Array.range(count).map(function(id) {
+        this.pools[objName] = Array.range(count).map(function(id) {
           return ObjClass(id, instanceData, instanceStride)
             .on("removed", function() {
-              self.pools[textureName].push(this);
+              self.pools[objName].push(this);
             });
         });
 
-        this.objTypes.push(textureName);
+        this.objTypes.push(objName);
       }
     },
 
@@ -121,17 +123,20 @@ phina.namespace(function() {
       return texture;
     },
 
-    get: function(textureName) {
-      return this.pools[textureName].shift();
+    get: function(objName) {
+      return this.pools[objName].shift();
     },
 
-    update: function() {
-    },
+    update: function() {},
 
     render: function(uniforms) {
       var gl = this.gl;
       gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      if (this.additiveBlending) {
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      } else {
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      }
       gl.disable(gl.DEPTH_TEST);
 
       this.uniforms.globalScale.value = 1.0;
@@ -142,11 +147,11 @@ phina.namespace(function() {
         }.bind(this));
       }
       var self = this;
-      this.objTypes.forEach(function(textureName) {
-        var count = self.counts[textureName];
-        var instanceData = self.instanceData[textureName];
-        var instanceVbo = self.instanceVbos[textureName];
-        var texture = self.textures[textureName];
+      this.objTypes.forEach(function(objName) {
+        var count = self.counts[objName];
+        var instanceData = self.instanceData[objName];
+        var instanceVbo = self.instanceVbos[objName];
+        var texture = self.textures[objName];
 
         instanceVbo.set(instanceData);
 

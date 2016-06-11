@@ -208,7 +208,7 @@ phina.namespace(function() {
         }
       }
 
-      if ((kb.getKey("SHOT") || gp.getKey("SHOT")) && frame % 2 === 0) {
+      if ((kb.getKey("SHOT") || gp.getKey("SHOT")) /* && frame % 2 === 0*/ ) {
         this.shot();
       }
     },
@@ -222,19 +222,39 @@ phina.namespace(function() {
     },
 
     shot: function() {
-      for (var i = -2; i < 2; i++) {
-        this.flare("fireShot", {
-          x: this.x + i * 20 + 10,
-          y: this.y - 20,
-          rotation: Math.PI * -0.5,
-          scale: 4,
-          frameX: 0,
-          frameY: 1,
-          alpha: 0.5,
-          dx: 0,
-          dy: -60,
-        });
-      }
+      var f = [6, 7, 8].pickup();
+      this.flare("fireLaser", {
+        x: this.x,
+        y: this.y - 20,
+        rotation: Math.PI * -0.5,
+        scaleX: 12,
+        scaleY: Math.randfloat(1.8, 2.2),
+        frameX: f % 8,
+        frameY: ~~(f / 8),
+        alpha: 1.0,
+        dx: 0,
+        dy: -100,
+        player: this,
+      });
+      
+      this._shot();
+    },
+
+    _shot: function() {
+      // for (var i = -2; i < 2; i++) {
+      //   this.flare("fireShot", {
+      //     x: this.x + i * 20 + 10,
+      //     y: this.y - 20,
+      //     rotation: Math.PI * -0.5,
+      //     scaleX: 4,
+      //     scaleY: 4,
+      //     frameX: [1, 2, 3, 4].pickup(),
+      //     frameY: 1,
+      //     alpha: 1.0,
+      //     dx: 0,
+      //     dy: -60,
+      //   });
+      // }
 
       var v = this.shift;
       if (v < 0) return;
@@ -265,10 +285,11 @@ phina.namespace(function() {
             x: this.x + x + cw * 15 * j + cr * 30,
             y: this.y + y + sw * 15 * j + sr * 30,
             rotation: d,
-            scale: 4,
-            frameX: 3,
+            scaleX: 4,
+            scaleY: 4,
+            frameX: [1, 2, 3, 4].pickup(),
             frameY: 1,
-            alpha: 0.5,
+            alpha: 1.0,
             dx: cr * 60,
             dy: sr * 60,
           });

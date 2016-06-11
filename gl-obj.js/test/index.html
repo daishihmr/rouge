@@ -9,8 +9,9 @@
 <body>
   <script src="../src/gl-obj.js"></script>
   <script>
-  var FILENAME = "./p64.obj";
-  // var FILENAME = "./test.obj";
+  // var FILENAME = "./objtest.obj";
+  var FILENAME = "./fighter.obj";
+  // var FILENAME = "./p64.obj";
 
   window.onload = function() {
 
@@ -24,10 +25,16 @@
     xhr.open("GET", FILENAME);
     xhr.send();
   };
-  
+
   var start = function(data) {
     var obj = globj.ObjParser.parse(data);
-    console.log(obj);
+    console.log(obj["defaultObject"].groups["defaultGroup"]);
+
+    var attr = globj.AttributeBuilder.build(obj["defaultObject"].groups["defaultGroup"]);
+    console.log(attr);
+
+    var s = attr.indices.sort();
+    console.log(s[s.length - 1]);
   };
   </script>
 </body>

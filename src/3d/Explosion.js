@@ -17,12 +17,14 @@ phina.namespace(function() {
         if (!e) return;
         var a = Math.randfloat(0, Math.PI * 2);
         var r = Math.randfloat(75, 125);
+        var s = Math.randfloat(0.1, 0.2);
         e
           .spawn({
             x: x + Math.cos(a) * r * 0.1,
             y: y + Math.sin(a) * r * 0.1,
             rotation: 0,
-            scale: Math.randfloat(0.1, 0.2),
+            scaleX: s,
+            scaleY: s,
             alpha: 5,
           })
           .addChildTo(glLayer);
@@ -54,8 +56,9 @@ phina.namespace(function() {
             x: x + Math.cos(a) * r * 0.2,
             y: y + Math.sin(a) * r * 0.2,
             rotation: 0,
-            scale: 1,
-            alpha: 3,
+            scaleX: 1,
+            scaleY: 1,
+            alpha: 1,
           })
           .addChildTo(glLayer);
 
@@ -64,7 +67,8 @@ phina.namespace(function() {
           .to({
             x: x + Math.cos(a) * r,
             y: y + Math.sin(a) * r,
-            scale: 3,
+            scaleX: 3,
+            scaleY: 3,
             alpha: 0,
           }, 333, "easeOutQuad")
           .call(function() {
@@ -78,12 +82,14 @@ phina.namespace(function() {
         if (!e) return;
         var a = Math.randfloat(0, Math.PI * 2);
         var r = Math.randfloat(75, 125);
+        var s = Math.randfloat(0.2, 0.4);
         e
           .spawn({
             x: x + Math.cos(a) * r * 0.1,
             y: y + Math.sin(a) * r * 0.1,
             rotation: 0,
-            scale: Math.randfloat(0.2, 0.4),
+            scaleX: s,
+            scaleY: s,
             alpha: 5,
           })
           .addChildTo(glLayer);

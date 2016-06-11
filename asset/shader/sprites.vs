@@ -4,7 +4,7 @@ attribute vec2 uv;
 attribute float instanceVisible;
 attribute vec2 instancePosition;
 attribute float instanceRotation;
-attribute float instanceScale;
+attribute vec2 instanceScale;
 attribute vec2 instanceFrame;
 attribute float instanceAlpha;
 
@@ -29,8 +29,8 @@ void main(void) {
       vec4(0.0, 0.0, 1.0, 0.0),
       vec4(instancePosition, 0.0, 1.0)
     ) * mat4(
-      vec4(instanceScale * globalScale, 0.0, 0.0, 0.0),
-      vec4(0.0, instanceScale * globalScale, 0.0, 0.0),
+      vec4(instanceScale.x * globalScale, 0.0, 0.0, 0.0),
+      vec4(0.0, instanceScale.y * globalScale, 0.0, 0.0),
       vec4(0.0, 0.0, 1.0, 0.0),
       vec4(0.0, 0.0, 0.0, 1.0)
     );

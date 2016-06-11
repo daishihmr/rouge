@@ -63,7 +63,7 @@ phina.namespace(function() {
         })
         .forEach(function(key) {
           var d = glb.Enemy.data[key] || {};
-          glLayer.enemyDrawer.addObjType(key, d.count || 100, d.className || "glb.Enemy");
+          glLayer.enemyDrawer.addObjType(key, key, d.count || 100, d.className || "glb.Enemy");
         });
 
       player
@@ -78,6 +78,19 @@ phina.namespace(function() {
               shot
                 .on("hitEnemy", function() {
                   explosion.spark(this.x, this.y - 10);
+                });
+            }
+          }
+        })
+        .on("fireLaser", function(e) {
+          var laser = glLayer.spriteDrawer.get("laser");
+          if (laser) {
+            laser.spawn(e).addChildTo(glLayer);
+            collisions.addShot(laser);
+            if (!laser.has("hitEnemy")) {
+              laser
+                .on("hitEnemy", function() {
+                  explosion.small(this.x, this.y);
                 });
             }
           }
@@ -105,7 +118,7 @@ phina.namespace(function() {
       player.setBarrier(barrier);
 
       // TODO atdks
-      for (var i = 0; i < 1000; i++) {
+      for (var i = 0; i < 1; i++) {
         var enemy = this.launchEnemy("enemyS1", 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
         if (enemy) {
           enemy.on("enterframe", function() {
@@ -145,7 +158,7 @@ phina.namespace(function() {
       }
 
       if (app.keyboard.getKeyDown("l")) {
-        
+
         this.player.launch();
       }
     },
