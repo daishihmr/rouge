@@ -76,11 +76,9 @@ phina.namespace(function() {
 
       var instanceStride = this.edgeDrawer.instanceStride / 4;
 
-      this.lightDirection = vec3.set(vec3.create(), 1, 1, 0);
-      this.faceDrawer.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
+      this.lightDirection = vec3.set(vec3.create(), -1, -0.5, 0);
+      vec3.normalize(this.lightDirection, this.lightDirection);
       // this.faceDrawer.uniforms.diffuseColor.value = [0.22, 0.22, 0.22 * 2.6, 0.75];
-      this.faceDrawer.uniforms.ambientColor.value = [0.05, 0.05, 0.05, 1.0];
-      this.edgeDrawer.uniforms.color.value = [0.6, 0.6, 0.6, 1.0];
 
       var self = this;
       this.pool = Array.range(0, this.count).map(function(id) {
@@ -108,13 +106,7 @@ phina.namespace(function() {
     },
 
     update: function(app) {
-      var f = app.ticker.frame * 0.001;
-      this.lightDirection = vec3.set(this.lightDirection, Math.cos(f * 10) * 1.1, 1, Math.sin(f * 10) * 1.1);
-      vec3.normalize(this.lightDirection, this.lightDirection);
-      this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
-
-      this.faceDrawer.setInstanceAttributeData(this.instanceData);
-      this.edgeDrawer.setInstanceAttributeData(this.instanceData);
+      var f = app.ticker.frame * 0.003;
     },
 
     get: function() {
@@ -126,6 +118,13 @@ phina.namespace(function() {
       gl.enable(gl.BLEND);
       gl.enable(gl.DEPTH_TEST);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+      this.faceDrawer.setInstanceAttributeData(this.instanceData);
+      this.edgeDrawer.setInstanceAttributeData(this.instanceData);
+
+      this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
+      this.faceDrawer.uniforms.ambientColor.value = [0.05, 0.05, 0.05, 0.7];
+      this.edgeDrawer.uniforms.color.value = [1.0, 1.0, 1.0, 1.0];
 
       if (uniforms) {
         uniforms.forIn(function(key, value) {

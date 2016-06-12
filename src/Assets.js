@@ -9,12 +9,14 @@ phina.namespace(function() {
               obj: {
                 "fighter.obj": "./asset/obj/fighter.obj",
                 "bit.obj": "./asset/obj/bit.obj",
+                "bitJoin.obj": "./asset/obj/bitJoin.obj",
                 "hex.obj": "./asset/obj/hex.obj",
                 "barrier.obj": "./asset/obj/barrier.obj",
               },
               textureSource: {
                 "fighter.png": "./asset/image/fighter.png",
                 "bit.png": "./asset/image/bit.png",
+                "bitJoin.png": "./asset/image/bit.png",
                 "bullets.png": "./asset/image/bullets.png",
                 "effect.png": "./asset/image/effect.png",
                 "barrier.png": "./asset/image/barrier.png",
@@ -51,12 +53,16 @@ phina.namespace(function() {
                 "enemyS2.obj": "./asset/obj/enemyS2.obj",
                 "enemyS3.obj": "./asset/obj/enemyS3.obj",
                 "enemyS4.obj": "./asset/obj/enemyS4.obj",
+                "enemyS5.obj": "./asset/obj/enemyS5.obj",
+                "enemyM1.obj": "./asset/obj/enemyM1.obj",
               },
               textureSource: {
                 "enemyS1.png": "./asset/image/enemyS1.png",
                 "enemyS2.png": "./asset/image/enemyS2.png",
                 "enemyS3.png": "./asset/image/enemyS3.png",
                 "enemyS4.png": "./asset/image/enemyS4.png",
+                "enemyS5.png": "./asset/image/enemyS5.png",
+                "enemyM1.png": "./asset/image/enemyM1.png",
               },
             };
           default:

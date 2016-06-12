@@ -59,6 +59,8 @@ phina.namespace(function() {
             scaleX: 1,
             scaleY: 1,
             alpha: 1,
+            frameX: 0,
+            frameY: 0,
           })
           .addChildTo(glLayer);
 
@@ -91,6 +93,8 @@ phina.namespace(function() {
             scaleX: s,
             scaleY: s,
             alpha: 5,
+            frameX: 0,
+            frameY: 0,
           })
           .addChildTo(glLayer);
 

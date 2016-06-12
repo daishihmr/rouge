@@ -20,8 +20,8 @@ varying vec4 vColor;
 varying float vFog;
 varying float vAlpha;
 
-const float fogStart = 1.0;
-const float fogEnd = 40.0;
+const float fogStart = 0.0;
+const float fogEnd = 35.0;
 
 // https://github.com/stackgl/glsl-inverse
 mat4 inverse(mat4 m) {
@@ -69,7 +69,7 @@ void main(void) {
   vUv = uv;
   vAlpha = instanceAlpha;
   
-  if (instanceVisible < 0.5) {
+  if (instanceVisible < 0.5 || instanceAlpha == 0.0) {
     gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
   } else {
     mat4 mMatrix = mat4(
@@ -80,18 +80,30 @@ void main(void) {
     );
     
     mat4 mvpMatrix = vpMatrix * mMatrix;
-    mat4 invMatrix = inverse(mMatrix);
     
-    vec3 invLight = normalize(invMatrix * vec4(-lightDirection, 0.0)).xyz;
-    vec3 invEye = normalize(invMatrix * vec4(cameraPosition, 0.0)).xyz;
-    vec3 halfLE = normalize(invLight + invEye);
-    float diffuse = clamp(dot(normal, invLight), 0.0, 1.0);
-    float specular = pow(clamp(dot(normal, halfLE), 0.0, 1.0), 8.0);
-    vec4 light = diffuseColor * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 0.0);
-    vColor = light + vec4(ambientColor.rgb, 0.0);
+    vec3 _position = (mMatrix * vec4(position, 0.0)).xyz;
+    vec3 _normal = (mMatrix * vec4(normal, 0.0)).xyz;
+    vec3 _eye = normalize(_position - cameraPosition);
+
+    vec3 halfVector = normalize(lightDirection.xyz + _eye);
+
+    float diffuse = dot(_normal, lightDirection);
+    float specular = pow(clamp(dot(_normal, halfVector), 0.0, 1.0), 300.0);
+    
+    vec4 a = ambientColor;
+    vec4 d = diffuseColor * vec4(vec3(diffuse), 1.0);
+    vec4 s = vec4(vec3(specular), 0.0);
+    
+    vec3 colorRgb = (clamp(a, 0.0, 1.0) + clamp(d, 0.0, 1.0) + clamp(s, 0.0, 1.0)).rgb;
+    float colorA = a.a * d.a;
+
+    vColor = vec4(vec3(colorRgb), colorA);
+
+    gl_Position = mvpMatrix * vec4(position, 1.0);
+
     vec3 pos = (mMatrix * vec4(position, 1.0)).xyz;
     float distance = length(cameraPosition - pos);
     vFog = clamp((fogEnd - distance) / (fogEnd - fogStart), 0.0, 1.0);
-    gl_Position = mvpMatrix * vec4(position, 1.0);
+
   }
 }

@@ -94,6 +94,24 @@ phina.namespace(function() {
                 });
             }
           }
+
+          var mf = glLayer.spriteDrawer.get("effect");
+          if (mf) {
+            var s = Math.randfloat(6.0, 8.0);
+            mf.spawn({
+              x: e.x,
+              y: e.y - 20,
+              rotation: (-90).toRadian(),
+              scaleX: s,
+              scaleY: s,
+              frameX: 5,
+              frameY: 1,
+              alpha: 0.8,
+            }).addChildTo(glLayer);
+            mf.tweener.clear().wait(20).call(function() {
+              mf.remove();
+            });
+          }
         })
         .on("launched", function() {
           // TODO
@@ -114,21 +132,26 @@ phina.namespace(function() {
         player.bits.push(bit);
       });
 
+      var bitJoin = glLayer.playerDrawer.get("bitJoin")
+        .addChildTo(glLayer);
+      player.setBitJoin(bitJoin);
+
       var barrier = glLayer.playerDrawer.get("barrier").addChildTo(glLayer);
       player.setBarrier(barrier);
 
       // TODO atdks
-      for (var i = 0; i < 1; i++) {
-        var enemy = this.launchEnemy("enemyS1", 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
-        if (enemy) {
-          enemy.on("enterframe", function() {
-            this.rotateZ(0.1);
+      for (var i = 0; i < 200; i++) {
+        var e = this.launchEnemy("enemyS" + Math.randint(1, 5), 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
+        if (e) {
+          quat.setAxisAngle(e.quaternion, [0, 0, 1], (90).toRadian());
+          e.dirty = true;
+          e.on("enterframe", function() {
+            this.y += 1;
           });
         }
       }
 
       player.launch();
-
     },
 
     launchEnemy: function(name, patternId, runnerName, x, y) {

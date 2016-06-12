@@ -4,6 +4,8 @@ phina.namespace(function() {
     superClass: "glb.Sprite",
     
     power: 0,
+    bx: 0,
+    by: 0,
 
     _active: false,
 

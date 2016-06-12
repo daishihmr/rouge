@@ -128,6 +128,7 @@ phina.namespace(function() {
     generateObjects: function() {
       this.playerDrawer.addObjType("fighter", "fighter", 1, "glb.Player");
       this.playerDrawer.addObjType("bit", "bit", 4);
+      this.playerDrawer.addObjType("bitJoin", "bitJoin", 1);
       this.playerDrawer.addObjType("barrier", "barrier", 1);
       this.spriteDrawer.addObjType("shot", "effect", 160, "glb.Shot");
       this.spriteDrawer.addObjType("laser", "effect", 20, "glb.Laser");
@@ -169,7 +170,7 @@ phina.namespace(function() {
       this.framebufferMain.bind();
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.terrain.render({
-        diffuseColor: [0.12, 0.12, 0.12 * 2.6, 1.0],
+        diffuseColor: [0.2, 0.2, 0.2 * 1.6, 0.7],
       }.$extend(pu));
       this.itemDrawer.render(ou);
       this.enemyDrawer.render({

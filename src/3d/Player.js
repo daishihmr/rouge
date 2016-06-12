@@ -72,6 +72,18 @@ phina.namespace(function() {
         }, 1000);
     },
 
+    setBitJoin: function(bitJoin) {
+      this.bitJoin = bitJoin;
+      bitJoin
+        .spawn({
+          visible: true,
+          scaleX: 20,
+          scaleY: 20,
+          scaleZ: 20,
+          rotZ: (-90).toRadian(),
+        });
+    },
+
     setBarrier: function(barrier) {
       this.barrier = barrier;
       barrier.spawn({
@@ -116,7 +128,7 @@ phina.namespace(function() {
         }
 
         if (bit) {
-          bit.visible = this.controllable;
+          bit.visible = this.controllable && this.shift < 1;
           if (bit.visible) {
             bit.x = this.x + x;
             bit.y = this.y + y;
@@ -124,6 +136,14 @@ phina.namespace(function() {
             bit.rotateX(this.age * (i < 2 ? 0.2 : -0.2));
           }
         }
+      }
+
+      var bitJoin = this.bitJoin;
+      bitJoin.visible = this.controllable && this.shift === 1;
+      if (bitJoin) {
+        bitJoin.x = this.x;
+        bitJoin.y = this.y + -50;
+        bitJoin.rotateX(0.2);
       }
 
       var barrier = this.barrier;
@@ -200,6 +220,9 @@ phina.namespace(function() {
         }
       }
 
+      var pressShot = kb.getKey("SHOT") || gp.getKey("SHOT");
+      var pressLaser = kb.getKey("LASER") || gp.getKey("LASER");
+
       if (this.shift >= 0) {
         if (kb.getKey("LASER") || gp.getKey("LASER")) {
           this.shift = Math.min(this.shift + 0.2, 1);
@@ -208,8 +231,10 @@ phina.namespace(function() {
         }
       }
 
-      if ((kb.getKey("SHOT") || gp.getKey("SHOT")) /* && frame % 2 === 0*/ ) {
+      if (pressShot && (0 <= this.shift && this.shift < 1) && frame % 2 === 0) {
         this.shot();
+      } else if (pressLaser && this.shift == 1) {
+        this.laser();
       }
     },
 
@@ -221,11 +246,11 @@ phina.namespace(function() {
       // TODO
     },
 
-    shot: function() {
+    laser: function() {
       var f = [6, 7, 8].pickup();
       this.flare("fireLaser", {
         x: this.x,
-        y: this.y - 20,
+        y: this.y - 40,
         rotation: Math.PI * -0.5,
         scaleX: 12,
         scaleY: Math.randfloat(1.8, 2.2),
@@ -236,25 +261,23 @@ phina.namespace(function() {
         dy: -100,
         player: this,
       });
-      
-      this._shot();
     },
 
-    _shot: function() {
-      // for (var i = -2; i < 2; i++) {
-      //   this.flare("fireShot", {
-      //     x: this.x + i * 20 + 10,
-      //     y: this.y - 20,
-      //     rotation: Math.PI * -0.5,
-      //     scaleX: 4,
-      //     scaleY: 4,
-      //     frameX: [1, 2, 3, 4].pickup(),
-      //     frameY: 1,
-      //     alpha: 1.0,
-      //     dx: 0,
-      //     dy: -60,
-      //   });
-      // }
+    shot: function() {
+      for (var i = -2; i < 2; i++) {
+        this.flare("fireShot", {
+          x: this.x + i * 20 + 10,
+          y: this.y - 20,
+          rotation: Math.PI * -0.5,
+          scaleX: 4,
+          scaleY: 4,
+          frameX: [1, 2, 3, 4].pickup(),
+          frameY: 1,
+          alpha: 1.0,
+          dx: 0,
+          dy: -60,
+        });
+      }
 
       var v = this.shift;
       if (v < 0) return;
@@ -386,32 +409,32 @@ phina.namespace(function() {
   }, ];
 
   var BIT_DATA2 = [{
-    x: -80,
-    y: 10,
+    x: 0,
+    y: -50,
     d: (6 - 90).toRadian(),
     sr: Math.sin((6 - 90).toRadian()),
     cr: Math.cos((6 - 90).toRadian()),
     sw: Math.sin((6).toRadian()),
     cw: Math.cos((6).toRadian()),
   }, {
-    x: -50,
-    y: 20,
+    x: 0,
+    y: -50,
     d: (3 - 90).toRadian(),
     sr: Math.sin((3 - 90).toRadian()),
     cr: Math.cos((3 - 90).toRadian()),
     sw: Math.sin((3).toRadian()),
     cw: Math.cos((3).toRadian()),
   }, {
-    x: 50,
-    y: 20,
+    x: 0,
+    y: -50,
     d: (-3 - 90).toRadian(),
     sr: Math.sin((-3 - 90).toRadian()),
     cr: Math.cos((-3 - 90).toRadian()),
     sw: Math.sin((-3).toRadian()),
     cw: Math.cos((-3).toRadian()),
   }, {
-    x: 80,
-    y: 10,
+    x: 0,
+    y: -50,
     d: (-6 - 90).toRadian(),
     sr: Math.sin((-6 - 90).toRadian()),
     cr: Math.cos((-6 - 90).toRadian()),

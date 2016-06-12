@@ -77,10 +77,10 @@ phina.namespace(function() {
           var attrData = obj.getAttributeData();
           var edgeData = obj.getAttributeDataEdges();
 
-          var vbo = phigl.Vbo(gl).set(attrData);
-          var ibo = phigl.Ibo(gl).set(Array.range(attrData.length / 8));
-          var edgesVbo = phigl.Vbo(gl).set(edgeData);
-          var edgesIbo = phigl.Ibo(gl).set(Array.range(edgeData.length / 3));
+          var vbo = phigl.Vbo(gl).set(attrData.attr);
+          var ibo = phigl.Ibo(gl).set(attrData.indices);
+          var edgesVbo = phigl.Vbo(gl).set(edgeData.attr);
+          var edgesIbo = phigl.Ibo(gl).set(edgeData.indices);
 
           manager.set("vbo", key, vbo);
           manager.set("ibo", key, ibo);

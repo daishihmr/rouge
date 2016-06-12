@@ -65,9 +65,13 @@ phina.namespace(function() {
           "texture"
         );
 
-      this.lightDirection = vec3.set(vec3.create(), -1.0, 0.0, -1.0);
-      this.diffuseColor = [1.0, 1.0, 1.0, 1.0];
-      this.ambientColor = [0.4, 0.4, 0.4, 1.0];
+      this.lightDirection = vec3.set(vec3.create(), 1, -0.5, 0);
+      vec3.normalize(this.lightDirection, this.lightDirection);
+      // this.diffuseColor = [0.6, 0.6, 0.6, 1.0];
+      // this.ambientColor = [0.6, 0.6, 0.6, 1.0];
+
+      this.diffuseColor = [0.5, 0.5, 0.5, 1.0];
+      this.ambientColor = [0.5, 0.5, 0.5, 1.0];
     },
 
     addObjType: function(objType, objAssetName, count, className) {
@@ -117,7 +121,6 @@ phina.namespace(function() {
     },
 
     update: function(app) {
-      vec3.normalize(this.lightDirection, this.lightDirection);
     },
 
     render: function(uniforms) {

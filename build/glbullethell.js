@@ -692,6 +692,8 @@ phina.namespace(function() {
             scaleX: 1,
             scaleY: 1,
             alpha: 1,
+            frameX: 0,
+            frameY: 0,
           })
           .addChildTo(glLayer);
 
@@ -724,6 +726,8 @@ phina.namespace(function() {
             scaleX: s,
             scaleY: s,
             alpha: 5,
+            frameX: 0,
+            frameY: 0,
           })
           .addChildTo(glLayer);
 
@@ -873,6 +877,7 @@ phina.namespace(function() {
     generateObjects: function() {
       this.playerDrawer.addObjType("fighter", "fighter", 1, "glb.Player");
       this.playerDrawer.addObjType("bit", "bit", 4);
+      this.playerDrawer.addObjType("bitJoin", "bitJoin", 1);
       this.playerDrawer.addObjType("barrier", "barrier", 1);
       this.spriteDrawer.addObjType("shot", "effect", 160, "glb.Shot");
       this.spriteDrawer.addObjType("laser", "effect", 20, "glb.Laser");
@@ -914,7 +919,7 @@ phina.namespace(function() {
       this.framebufferMain.bind();
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.terrain.render({
-        diffuseColor: [0.12, 0.12, 0.12 * 2.6, 1.0],
+        diffuseColor: [0.2, 0.2, 0.2 * 1.6, 0.7],
       }.$extend(pu));
       this.itemDrawer.render(ou);
       this.enemyDrawer.render({
@@ -1335,39 +1340,18 @@ phina.namespace(function() {
 
   phina.define("glb.ObjAsset", {
     superClass: "phina.asset.File",
-
+    
     init: function() {
       this.superInit();
     },
-
+    
     getAttributeData: function(objectName, groupName) {
       objectName = objectName || "defaultObject";
       groupName = groupName || "defaultGroup";
-
+      
       var obj = globj.ObjParser.parse(this.data)[objectName].groups[groupName];
-
-      var trigons = [];
-      obj.faces.forEach(function(face) {
-        for (var i = 1; i < face.length - 1; i++) {
-          trigons.push(face[0]);
-          trigons.push(face[i + 1]);
-          trigons.push(face[i + 0]);
-        }
-      });
-
-      return trigons.map(function(vertex, i) {
-        var p = obj.positions[vertex.position - 1];
-        var t = obj.texCoords[vertex.texCoord - 1];
-        var n = obj.normals[vertex.normal - 1];
-        return [
-          // position
-          p.x, p.y, p.z,
-          // texCoord
-          t.u, 1.0 - t.v,
-          // normal
-          n.x, n.y, n.z
-        ];
-      }).flatten();
+      obj = globj.ObjParser.trialgulate(obj);
+      return globj.AttributeBuilder.build(obj);
     },
 
     getAttributeDataEdges: function(objectName, groupName) {
@@ -1375,30 +1359,8 @@ phina.namespace(function() {
       groupName = groupName || "defaultGroup";
 
       var obj = globj.ObjParser.parse(this.data)[objectName].groups[groupName];
-      var result = [];
-
-      return obj.faces
-        .map(function(face) {
-          var lines = [];
-          for (var i = 0; i < face.length - 1; i++) {
-            lines.push([face[i + 0].position, face[i + 1].position]);
-          }
-          lines.push([face.last.position, face.first.position]);
-          return lines;
-        })
-        .flatten(1)
-        .uniq(function(lhs, rhs) {
-          return lhs[0] === rhs[0] && lhs[1] === rhs[1];
-        })
-        .map(function(edge) {
-          var p0 = obj.positions[edge[0] - 1];
-          var p1 = obj.positions[edge[1] - 1];
-          return [
-            [p0.x, p0.y, p0.z],
-            [p1.x, p1.y, p1.z],
-          ];
-        })
-        .flatten();
+      obj = globj.ObjParser.edge(obj);
+      return globj.AttributeBuilder.buildEdges(obj);
     },
   });
 
@@ -1478,9 +1440,13 @@ phina.namespace(function() {
           "texture"
         );
 
-      this.lightDirection = vec3.set(vec3.create(), -1.0, 0.0, -1.0);
-      this.diffuseColor = [1.0, 1.0, 1.0, 1.0];
-      this.ambientColor = [0.4, 0.4, 0.4, 1.0];
+      this.lightDirection = vec3.set(vec3.create(), 1, -0.5, 0);
+      vec3.normalize(this.lightDirection, this.lightDirection);
+      // this.diffuseColor = [0.6, 0.6, 0.6, 1.0];
+      // this.ambientColor = [0.6, 0.6, 0.6, 1.0];
+
+      this.diffuseColor = [0.5, 0.5, 0.5, 1.0];
+      this.ambientColor = [0.5, 0.5, 0.5, 1.0];
     },
 
     addObjType: function(objType, objAssetName, count, className) {
@@ -1530,7 +1496,6 @@ phina.namespace(function() {
     },
 
     update: function(app) {
-      vec3.normalize(this.lightDirection, this.lightDirection);
     },
 
     render: function(uniforms) {
@@ -1687,6 +1652,18 @@ phina.namespace(function() {
         }, 1000);
     },
 
+    setBitJoin: function(bitJoin) {
+      this.bitJoin = bitJoin;
+      bitJoin
+        .spawn({
+          visible: true,
+          scaleX: 20,
+          scaleY: 20,
+          scaleZ: 20,
+          rotZ: (-90).toRadian(),
+        });
+    },
+
     setBarrier: function(barrier) {
       this.barrier = barrier;
       barrier.spawn({
@@ -1731,7 +1708,7 @@ phina.namespace(function() {
         }
 
         if (bit) {
-          bit.visible = this.controllable;
+          bit.visible = this.controllable && this.shift < 1;
           if (bit.visible) {
             bit.x = this.x + x;
             bit.y = this.y + y;
@@ -1739,6 +1716,14 @@ phina.namespace(function() {
             bit.rotateX(this.age * (i < 2 ? 0.2 : -0.2));
           }
         }
+      }
+
+      var bitJoin = this.bitJoin;
+      bitJoin.visible = this.controllable && this.shift === 1;
+      if (bitJoin) {
+        bitJoin.x = this.x;
+        bitJoin.y = this.y + -50;
+        bitJoin.rotateX(0.2);
       }
 
       var barrier = this.barrier;
@@ -1815,6 +1800,9 @@ phina.namespace(function() {
         }
       }
 
+      var pressShot = kb.getKey("SHOT") || gp.getKey("SHOT");
+      var pressLaser = kb.getKey("LASER") || gp.getKey("LASER");
+
       if (this.shift >= 0) {
         if (kb.getKey("LASER") || gp.getKey("LASER")) {
           this.shift = Math.min(this.shift + 0.2, 1);
@@ -1823,8 +1811,10 @@ phina.namespace(function() {
         }
       }
 
-      if ((kb.getKey("SHOT") || gp.getKey("SHOT")) /* && frame % 2 === 0*/ ) {
+      if (pressShot && (0 <= this.shift && this.shift < 1) && frame % 2 === 0) {
         this.shot();
+      } else if (pressLaser && this.shift == 1) {
+        this.laser();
       }
     },
 
@@ -1836,11 +1826,11 @@ phina.namespace(function() {
       // TODO
     },
 
-    shot: function() {
+    laser: function() {
       var f = [6, 7, 8].pickup();
       this.flare("fireLaser", {
         x: this.x,
-        y: this.y - 20,
+        y: this.y - 40,
         rotation: Math.PI * -0.5,
         scaleX: 12,
         scaleY: Math.randfloat(1.8, 2.2),
@@ -1851,25 +1841,23 @@ phina.namespace(function() {
         dy: -100,
         player: this,
       });
-      
-      this._shot();
     },
 
-    _shot: function() {
-      // for (var i = -2; i < 2; i++) {
-      //   this.flare("fireShot", {
-      //     x: this.x + i * 20 + 10,
-      //     y: this.y - 20,
-      //     rotation: Math.PI * -0.5,
-      //     scaleX: 4,
-      //     scaleY: 4,
-      //     frameX: [1, 2, 3, 4].pickup(),
-      //     frameY: 1,
-      //     alpha: 1.0,
-      //     dx: 0,
-      //     dy: -60,
-      //   });
-      // }
+    shot: function() {
+      for (var i = -2; i < 2; i++) {
+        this.flare("fireShot", {
+          x: this.x + i * 20 + 10,
+          y: this.y - 20,
+          rotation: Math.PI * -0.5,
+          scaleX: 4,
+          scaleY: 4,
+          frameX: [1, 2, 3, 4].pickup(),
+          frameY: 1,
+          alpha: 1.0,
+          dx: 0,
+          dy: -60,
+        });
+      }
 
       var v = this.shift;
       if (v < 0) return;
@@ -2001,32 +1989,32 @@ phina.namespace(function() {
   }, ];
 
   var BIT_DATA2 = [{
-    x: -80,
-    y: 10,
+    x: 0,
+    y: -50,
     d: (6 - 90).toRadian(),
     sr: Math.sin((6 - 90).toRadian()),
     cr: Math.cos((6 - 90).toRadian()),
     sw: Math.sin((6).toRadian()),
     cw: Math.cos((6).toRadian()),
   }, {
-    x: -50,
-    y: 20,
+    x: 0,
+    y: -50,
     d: (3 - 90).toRadian(),
     sr: Math.sin((3 - 90).toRadian()),
     cr: Math.cos((3 - 90).toRadian()),
     sw: Math.sin((3).toRadian()),
     cw: Math.cos((3).toRadian()),
   }, {
-    x: 50,
-    y: 20,
+    x: 0,
+    y: -50,
     d: (-3 - 90).toRadian(),
     sr: Math.sin((-3 - 90).toRadian()),
     cr: Math.cos((-3 - 90).toRadian()),
     sw: Math.sin((-3).toRadian()),
     cw: Math.cos((-3).toRadian()),
   }, {
-    x: 80,
-    y: 10,
+    x: 0,
+    y: -50,
     d: (-6 - 90).toRadian(),
     sr: Math.sin((-6 - 90).toRadian()),
     cr: Math.cos((-6 - 90).toRadian()),
@@ -2153,6 +2141,8 @@ phina.namespace(function() {
     superClass: "glb.Sprite",
     
     power: 0,
+    bx: 0,
+    by: 0,
 
     _active: false,
 
@@ -2525,11 +2515,9 @@ phina.namespace(function() {
 
       var instanceStride = this.edgeDrawer.instanceStride / 4;
 
-      this.lightDirection = vec3.set(vec3.create(), 1, 1, 0);
-      this.faceDrawer.uniforms.lightDirection.value = vec3.normalize(vec3.create(), this.lightDirection);
+      this.lightDirection = vec3.set(vec3.create(), -1, -0.5, 0);
+      vec3.normalize(this.lightDirection, this.lightDirection);
       // this.faceDrawer.uniforms.diffuseColor.value = [0.22, 0.22, 0.22 * 2.6, 0.75];
-      this.faceDrawer.uniforms.ambientColor.value = [0.05, 0.05, 0.05, 1.0];
-      this.edgeDrawer.uniforms.color.value = [0.6, 0.6, 0.6, 1.0];
 
       var self = this;
       this.pool = Array.range(0, this.count).map(function(id) {
@@ -2557,13 +2545,7 @@ phina.namespace(function() {
     },
 
     update: function(app) {
-      var f = app.ticker.frame * 0.001;
-      this.lightDirection = vec3.set(this.lightDirection, Math.cos(f * 10) * 1.1, 1, Math.sin(f * 10) * 1.1);
-      vec3.normalize(this.lightDirection, this.lightDirection);
-      this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
-
-      this.faceDrawer.setInstanceAttributeData(this.instanceData);
-      this.edgeDrawer.setInstanceAttributeData(this.instanceData);
+      var f = app.ticker.frame * 0.003;
     },
 
     get: function() {
@@ -2575,6 +2557,13 @@ phina.namespace(function() {
       gl.enable(gl.BLEND);
       gl.enable(gl.DEPTH_TEST);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+      this.faceDrawer.setInstanceAttributeData(this.instanceData);
+      this.edgeDrawer.setInstanceAttributeData(this.instanceData);
+
+      this.faceDrawer.uniforms.lightDirection.value = this.lightDirection;
+      this.faceDrawer.uniforms.ambientColor.value = [0.05, 0.05, 0.05, 0.7];
+      this.edgeDrawer.uniforms.color.value = [1.0, 1.0, 1.0, 1.0];
 
       if (uniforms) {
         uniforms.forIn(function(key, value) {
@@ -2617,12 +2606,14 @@ phina.namespace(function() {
               obj: {
                 "fighter.obj": "./asset/obj/fighter.obj",
                 "bit.obj": "./asset/obj/bit.obj",
+                "bitJoin.obj": "./asset/obj/bitJoin.obj",
                 "hex.obj": "./asset/obj/hex.obj",
                 "barrier.obj": "./asset/obj/barrier.obj",
               },
               textureSource: {
                 "fighter.png": "./asset/image/fighter.png",
                 "bit.png": "./asset/image/bit.png",
+                "bitJoin.png": "./asset/image/bit.png",
                 "bullets.png": "./asset/image/bullets.png",
                 "effect.png": "./asset/image/effect.png",
                 "barrier.png": "./asset/image/barrier.png",
@@ -2659,12 +2650,16 @@ phina.namespace(function() {
                 "enemyS2.obj": "./asset/obj/enemyS2.obj",
                 "enemyS3.obj": "./asset/obj/enemyS3.obj",
                 "enemyS4.obj": "./asset/obj/enemyS4.obj",
+                "enemyS5.obj": "./asset/obj/enemyS5.obj",
+                "enemyM1.obj": "./asset/obj/enemyM1.obj",
               },
               textureSource: {
                 "enemyS1.png": "./asset/image/enemyS1.png",
                 "enemyS2.png": "./asset/image/enemyS2.png",
                 "enemyS3.png": "./asset/image/enemyS3.png",
                 "enemyS4.png": "./asset/image/enemyS4.png",
+                "enemyS5.png": "./asset/image/enemyS5.png",
+                "enemyM1.png": "./asset/image/enemyM1.png",
               },
             };
           default:
@@ -3066,10 +3061,10 @@ phina.namespace(function() {
           var attrData = obj.getAttributeData();
           var edgeData = obj.getAttributeDataEdges();
 
-          var vbo = phigl.Vbo(gl).set(attrData);
-          var ibo = phigl.Ibo(gl).set(Array.range(attrData.length / 8));
-          var edgesVbo = phigl.Vbo(gl).set(edgeData);
-          var edgesIbo = phigl.Ibo(gl).set(Array.range(edgeData.length / 3));
+          var vbo = phigl.Vbo(gl).set(attrData.attr);
+          var ibo = phigl.Ibo(gl).set(attrData.indices);
+          var edgesVbo = phigl.Vbo(gl).set(edgeData.attr);
+          var edgesIbo = phigl.Ibo(gl).set(edgeData.indices);
 
           manager.set("vbo", key, vbo);
           manager.set("ibo", key, ibo);
@@ -3320,6 +3315,24 @@ phina.namespace(function() {
                 });
             }
           }
+
+          var mf = glLayer.spriteDrawer.get("effect");
+          if (mf) {
+            var s = Math.randfloat(6.0, 8.0);
+            mf.spawn({
+              x: e.x,
+              y: e.y - 20,
+              rotation: (-90).toRadian(),
+              scaleX: s,
+              scaleY: s,
+              frameX: 5,
+              frameY: 1,
+              alpha: 0.8,
+            }).addChildTo(glLayer);
+            mf.tweener.clear().wait(20).call(function() {
+              mf.remove();
+            });
+          }
         })
         .on("launched", function() {
           // TODO
@@ -3340,21 +3353,26 @@ phina.namespace(function() {
         player.bits.push(bit);
       });
 
+      var bitJoin = glLayer.playerDrawer.get("bitJoin")
+        .addChildTo(glLayer);
+      player.setBitJoin(bitJoin);
+
       var barrier = glLayer.playerDrawer.get("barrier").addChildTo(glLayer);
       player.setBarrier(barrier);
 
       // TODO atdks
-      for (var i = 0; i < 1; i++) {
-        var enemy = this.launchEnemy("enemyS1", 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
-        if (enemy) {
-          enemy.on("enterframe", function() {
-            this.rotateZ(0.1);
+      for (var i = 0; i < 200; i++) {
+        var e = this.launchEnemy("enemyS" + Math.randint(1, 5), 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
+        if (e) {
+          quat.setAxisAngle(e.quaternion, [0, 0, 1], (90).toRadian());
+          e.dirty = true;
+          e.on("enterframe", function() {
+            this.y += 1;
           });
         }
       }
 
       player.launch();
-
     },
 
     launchEnemy: function(name, patternId, runnerName, x, y) {
