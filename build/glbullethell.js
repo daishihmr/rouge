@@ -3361,7 +3361,7 @@ phina.namespace(function() {
       player.setBarrier(barrier);
 
       // TODO atdks
-      for (var i = 0; i < 200; i++) {
+      for (var i = 0; i < 5; i++) {
         var e = this.launchEnemy("enemyS" + Math.randint(1, 5), 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
         if (e) {
           quat.setAxisAngle(e.quaternion, [0, 0, 1], (90).toRadian());
