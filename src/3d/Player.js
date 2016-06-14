@@ -252,13 +252,13 @@ phina.namespace(function() {
         x: this.x,
         y: this.y - 40,
         rotation: Math.PI * -0.5,
-        scaleX: 12,
+        scaleX: 15,
         scaleY: Math.randfloat(1.8, 2.2),
         frameX: f % 8,
         frameY: ~~(f / 8),
         alpha: 1.0,
         dx: 0,
-        dy: -100,
+        dy: -150,
         player: this,
       });
     },
@@ -275,7 +275,7 @@ phina.namespace(function() {
           frameY: 1,
           alpha: 1.0,
           dx: 0,
-          dy: -60,
+          dy: -90,
         });
       }
 
@@ -313,8 +313,8 @@ phina.namespace(function() {
             frameX: [1, 2, 3, 4].pickup(),
             frameY: 1,
             alpha: 1.0,
-            dx: cr * 60,
-            dy: sr * 60,
+            dx: cr * 90,
+            dy: sr * 90,
           });
         }.bind(this));
       }

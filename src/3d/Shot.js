@@ -16,7 +16,10 @@ phina.namespace(function() {
     spawn: function(options) {
       this.dx = options.dx;
       this.dy = options.dy;
-      return glb.Sprite.prototype.spawn.call(this, options);
+      glb.Sprite.prototype.spawn.call(this, options);
+      this.bx = this.x;
+      this.by = this.y;
+      return this;
     },
 
     activate: function() {
@@ -32,14 +35,16 @@ phina.namespace(function() {
     },
 
     update: function(app) {
+      this.bx = this.x;
+      this.by = this.y;
       this.x += this.dx;
       this.y += this.dy;
       glb.Sprite.prototype.update.call(this, app);
     },
 
-    hitEnemy: function(e) {
+    hitEnemy: function(enemy) {
       // TODO
-      this.flare("hitEnemy");
+      this.flare("hitEnemy", { enemy: enemy });
       this.remove();
     },
 

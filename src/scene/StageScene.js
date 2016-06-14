@@ -76,8 +76,8 @@ phina.namespace(function() {
             collisions.addShot(shot);
             if (!shot.has("hitEnemy")) {
               shot
-                .on("hitEnemy", function() {
-                  explosion.spark(this.x, this.y - 10);
+                .on("hitEnemy", function(e) {
+                  explosion.spark(e.enemy.x, e.enemy.y);
                 });
             }
           }
@@ -89,8 +89,8 @@ phina.namespace(function() {
             collisions.addShot(laser);
             if (!laser.has("hitEnemy")) {
               laser
-                .on("hitEnemy", function() {
-                  explosion.small(this.x, this.y);
+                .on("hitEnemy", function(e) {
+                  explosion.small(e.enemy.x, e.enemy.y);
                 });
             }
           }
@@ -144,10 +144,10 @@ phina.namespace(function() {
         var e = this.launchEnemy("enemyS" + Math.randint(1, 5), 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
         if (e) {
           quat.setAxisAngle(e.quaternion, [0, 0, 1], (90).toRadian());
-          e.dirty = true;
-          e.on("enterframe", function() {
-            this.y += 1;
-          });
+          // e.dirty = true;
+          // e.on("enterframe", function() {
+          //   this.y += 1;
+          // });
         }
       }
 

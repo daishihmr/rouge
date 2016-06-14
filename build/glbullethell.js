@@ -567,7 +567,7 @@ phina.namespace(function() {
         for (var i = 0, il = ss.length; i < il; i++) {
           s = ss[i];
 
-          if ((e.x - s.x) * (e.x - s.x) + (e.y - s.y) * (e.y - s.y) < e.radius * e.radius) {
+          if (this._hitTestLineCircle(s, e)) {
             e.hitShot(s);
             s.hitEnemy(e);
           }
@@ -607,7 +607,29 @@ phina.namespace(function() {
       }
     },
 
+    _hitTestLineCircle: function(line, circle) {
+      vec2.sub(ap, [circle.x, circle.y], [line.bx, line.by]);
+      vec2.sub(bp, [circle.x, circle.y], [line.x, line.y]);
+      vec2.sub(s, [line.x, line.y], [line.bx, line.by]);
+
+      var radius = circle.radius;
+      var radiusSq = radius * radius;
+
+      if (vec2.squaredLength(ap) <= radiusSq || vec2.squaredLength(bp) <= radiusSq) {
+        return true;
+      } else {
+        vec2.cross(cross, s, ap);
+        return vec3.length(cross) / vec2.length(s) <= radius &&
+          vec2.dot(ap, s) * vec2.dot(bp, s) <= 0;
+      }
+    },
+
   });
+
+  var ap = vec2.create();
+  var bp = vec2.create();
+  var s = vec2.create();
+  var cross = vec3.create();
 
 });
 
@@ -1100,7 +1122,7 @@ phina.namespace(function() {
       this.dy = options.dy;
       this.player = options.player;
       
-      glb.Sprite.prototype.spawn.call(this, options);
+      glb.Shot.prototype.spawn.call(this, options);
 
       this.iScaleX = this.scaleX * 2;
       this.iScaleY = this.scaleY * 2;
@@ -1111,6 +1133,8 @@ phina.namespace(function() {
     },
 
     update: function(app) {
+      this.bx = this.x;
+      this.by = this.y;
       this.x = this.player.x;
       this.y += this.dy;
       var t = Math.clamp(this.age / 4, 0.0, 1.0);
@@ -1832,13 +1856,13 @@ phina.namespace(function() {
         x: this.x,
         y: this.y - 40,
         rotation: Math.PI * -0.5,
-        scaleX: 12,
+        scaleX: 15,
         scaleY: Math.randfloat(1.8, 2.2),
         frameX: f % 8,
         frameY: ~~(f / 8),
         alpha: 1.0,
         dx: 0,
-        dy: -100,
+        dy: -150,
         player: this,
       });
     },
@@ -1855,7 +1879,7 @@ phina.namespace(function() {
           frameY: 1,
           alpha: 1.0,
           dx: 0,
-          dy: -60,
+          dy: -90,
         });
       }
 
@@ -1893,8 +1917,8 @@ phina.namespace(function() {
             frameX: [1, 2, 3, 4].pickup(),
             frameY: 1,
             alpha: 1.0,
-            dx: cr * 60,
-            dy: sr * 60,
+            dx: cr * 90,
+            dy: sr * 90,
           });
         }.bind(this));
       }
@@ -2153,7 +2177,10 @@ phina.namespace(function() {
     spawn: function(options) {
       this.dx = options.dx;
       this.dy = options.dy;
-      return glb.Sprite.prototype.spawn.call(this, options);
+      glb.Sprite.prototype.spawn.call(this, options);
+      this.bx = this.x;
+      this.by = this.y;
+      return this;
     },
 
     activate: function() {
@@ -2169,14 +2196,16 @@ phina.namespace(function() {
     },
 
     update: function(app) {
+      this.bx = this.x;
+      this.by = this.y;
       this.x += this.dx;
       this.y += this.dy;
       glb.Sprite.prototype.update.call(this, app);
     },
 
-    hitEnemy: function(e) {
+    hitEnemy: function(enemy) {
       // TODO
-      this.flare("hitEnemy");
+      this.flare("hitEnemy", { enemy: enemy });
       this.remove();
     },
 
@@ -3297,8 +3326,8 @@ phina.namespace(function() {
             collisions.addShot(shot);
             if (!shot.has("hitEnemy")) {
               shot
-                .on("hitEnemy", function() {
-                  explosion.spark(this.x, this.y - 10);
+                .on("hitEnemy", function(e) {
+                  explosion.spark(e.enemy.x, e.enemy.y);
                 });
             }
           }
@@ -3310,8 +3339,8 @@ phina.namespace(function() {
             collisions.addShot(laser);
             if (!laser.has("hitEnemy")) {
               laser
-                .on("hitEnemy", function() {
-                  explosion.small(this.x, this.y);
+                .on("hitEnemy", function(e) {
+                  explosion.small(e.enemy.x, e.enemy.y);
                 });
             }
           }
@@ -3365,10 +3394,10 @@ phina.namespace(function() {
         var e = this.launchEnemy("enemyS" + Math.randint(1, 5), 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
         if (e) {
           quat.setAxisAngle(e.quaternion, [0, 0, 1], (90).toRadian());
-          e.dirty = true;
-          e.on("enterframe", function() {
-            this.y += 1;
-          });
+          // e.dirty = true;
+          // e.on("enterframe", function() {
+          //   this.y += 1;
+          // });
         }
       }
 

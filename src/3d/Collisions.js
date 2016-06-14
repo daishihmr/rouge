@@ -76,7 +76,7 @@ phina.namespace(function() {
         for (var i = 0, il = ss.length; i < il; i++) {
           s = ss[i];
 
-          if ((e.x - s.x) * (e.x - s.x) + (e.y - s.y) * (e.y - s.y) < e.radius * e.radius) {
+          if (this._hitTestLineCircle(s, e)) {
             e.hitShot(s);
             s.hitEnemy(e);
           }
@@ -116,6 +116,28 @@ phina.namespace(function() {
       }
     },
 
+    _hitTestLineCircle: function(line, circle) {
+      vec2.sub(ap, [circle.x, circle.y], [line.bx, line.by]);
+      vec2.sub(bp, [circle.x, circle.y], [line.x, line.y]);
+      vec2.sub(s, [line.x, line.y], [line.bx, line.by]);
+
+      var radius = circle.radius;
+      var radiusSq = radius * radius;
+
+      if (vec2.squaredLength(ap) <= radiusSq || vec2.squaredLength(bp) <= radiusSq) {
+        return true;
+      } else {
+        vec2.cross(cross, s, ap);
+        return vec3.length(cross) / vec2.length(s) <= radius &&
+          vec2.dot(ap, s) * vec2.dot(bp, s) <= 0;
+      }
+    },
+
   });
+
+  var ap = vec2.create();
+  var bp = vec2.create();
+  var s = vec2.create();
+  var cross = vec3.create();
 
 });

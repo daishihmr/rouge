@@ -18,7 +18,7 @@ phina.namespace(function() {
       this.dy = options.dy;
       this.player = options.player;
       
-      glb.Sprite.prototype.spawn.call(this, options);
+      glb.Shot.prototype.spawn.call(this, options);
 
       this.iScaleX = this.scaleX * 2;
       this.iScaleY = this.scaleY * 2;
@@ -29,6 +29,8 @@ phina.namespace(function() {
     },
 
     update: function(app) {
+      this.bx = this.x;
+      this.by = this.y;
       this.x = this.player.x;
       this.y += this.dy;
       var t = Math.clamp(this.age / 4, 0.0, 1.0);

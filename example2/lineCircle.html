@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, height=device-height, user-scalable=no, initial-scale=1, maximum-scale=1">
+</head>
+
+<body>
+  <script src="../lib/gl-matrix.js"></script>
+  <script src="../lib/phina.js"></script>
+  <script>
+  phina.main(function() {
+    var c = phina.graphics.Canvas().setSize(500, 500);
+    document.body.appendChild(c.domElement);
+
+    var line = {
+      bx: 80,
+      by: 80,
+      x: 330,
+      y: 230,
+    };
+    var circle = {
+      x: 200,
+      y: 200,
+      radius: 50,
+    };
+
+    c.strokeStyle = "black";
+    c.fillStyle = "blue";
+
+    var keyboard = phina.input.Keyboard();
+
+    phina.util.Ticker()
+      .on("tick", function() {
+        keyboard.update();
+
+        if (keyboard.getKey("left")) {
+          circle.x -= 2;
+        } else if (keyboard.getKey("right")) {
+          circle.x += 2;
+        }
+        if (keyboard.getKey("up")) {
+          circle.y -= 2;
+        } else if (keyboard.getKey("down")) {
+          circle.y += 2;
+        }
+
+        if (_hitTestLineCircle(line, circle)) {
+          c.fillStyle = "blue";
+        } else {
+          c.fillStyle = "red";
+        }
+
+        c.clear();
+        c.drawLine(line.bx, line.by, line.x, line.y);
+        c.fillCircle(circle.x, circle.y, circle.radius);
+      })
+      .start();
+  });
+
+  var _hitTestLineCircle = function(line, circle) {
+    vec2.sub(ap, [circle.x, circle.y], [line.bx, line.by]);
+    vec2.sub(bp, [circle.x, circle.y], [line.x, line.y]);
+    vec2.sub(s, [line.x, line.y], [line.bx, line.by]);
+
+    var radius = circle.radius;
+    var radiusSq = radius * radius;
+
+    if (vec2.squaredLength(ap) <= radiusSq) {
+      return true;
+    } else if (vec2.squaredLength(bp) <= radiusSq) {
+      return true;
+    } else {
+      vec2.cross(cross, s, ap);
+
+      return vec3.length(cross) / vec2.length(s) <= radius &&
+        vec2.dot(ap, s) * vec2.dot(bp, s) <= 0;
+    }
+  };
+  var ap = vec2.create();
+  var bp = vec2.create();
+  var s = vec2.create();
+  var cross = vec3.create();
+  </script>
+</body>
+
+</html>
