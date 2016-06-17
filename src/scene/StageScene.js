@@ -144,12 +144,55 @@ phina.namespace(function() {
         var e = this.launchEnemy("enemyS" + Math.randint(1, 5), 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
         if (e) {
           quat.setAxisAngle(e.quaternion, [0, 0, 1], (90).toRadian());
-          // e.dirty = true;
+          e.dirty = true;
           // e.on("enterframe", function() {
           //   this.y += 1;
           // });
         }
       }
+
+      this.on("enterframe", function(e) {
+        if (e.app.ticker.frame % 10 != 0) return;
+
+        (5).times(function() {
+
+          var x = Math.random() * SCREEN_WIDTH + 30;
+          var y = Math.random() * SCREEN_HEIGHT;
+          
+          explosion.small(x, y);
+
+          var value = Math.randint(2, 9999);
+          var label = glb.Label({
+              spriteDrawer: glLayer.spriteDrawer,
+              x: x,
+              y: y,
+              text: "x0",
+            })
+            .$extend({ value: 0 })
+            .addChildTo(glLayer)
+            .on("enterframe", function() {
+              this.setText("x" + ~~(this.value))
+            })
+          label
+            .tweener
+            .set({
+              alpha: 1,
+            })
+            .to({
+              y: y - 30,
+              value: value,
+            }, 500, "easeOutQuad")
+            .wait(50)
+            .to({
+              alpha: 0,
+            }, 200)
+            .call(function() {
+              label.remove();
+            });
+
+        });
+      });
+
 
       player.launch();
     },
@@ -181,7 +224,6 @@ phina.namespace(function() {
       }
 
       if (app.keyboard.getKeyDown("l")) {
-
         this.player.launch();
       }
     },

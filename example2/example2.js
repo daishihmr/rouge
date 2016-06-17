@@ -16,12 +16,16 @@ phina.namespace(function() {
 
             {
               label: "download",
-              className: "glb.DownloadScene",
+              className: "phina.game.LoadingScene",
               arguments: {
                 assets: {
+                  image: {
+                    test: "__test.png",
+                    zanki: "../asset/image/zanki.png",
+                  },
                   font: {
                     "Aldrich": "../asset/font/Aldrich/Aldrich-Regular.ttf",
-                  }
+                  },
                 },
               },
             },
@@ -48,29 +52,17 @@ phina.namespace(function() {
         width: SCREEN_WIDTH,
         height: SCREEN_HEIGHT,
       });
-      
+
       this.fromJSON({
         children: {
-          scoreLabel: {
-            className: "strike.NumberSpriteArray",
-            arguments: {
-              fontFamily: "Aldrich",
-              fontSize: 50,
-              fill: "white",
-              stroke: null,
-              digit: 16,
-            },
-            x: 10,
-            y: SCREEN_HEIGHT / 2,
-            value: 1,
+          uiLayer: {
+            className: "glb.UILayer",
           },
         },
       });
     },
-    
-    update: function(app) {
-      this.scoreLabel.value *= 1.01;
-    },
+
+    update: function(app) {},
   });
 
 });

@@ -90,7 +90,7 @@ phina.namespace(function() {
       var canvas = phina.graphics.Canvas();
       var context = canvas.context;
 
-      this.unitWidth = Array.range(0, 10)
+      var w = Array.range(0, 10)
         .map(function(i) {
           context.font = "{fontWeight} {fontSize}px '{fontFamily}'".format(options);
           return context.measureText("" + i).width;
@@ -103,10 +103,13 @@ phina.namespace(function() {
         })
         .last + 1 | 0;
 
-      this.unitWidth *= 1.15;
+      var log2 = function(v) {
+        return Math.log(v) / Math.log(2);
+      };
+      this.unitWidth = Math.pow(2, (log2(w) | 0) + 1);
 
       var w = this.unitWidth * 10;
-      var h = options.fontSize;
+      var h = this.unitWidth * 1;
       canvas.setSize(Math.pow(2, Math.log2(w) + 1 | 0), Math.pow(2, Math.log2(h) + 1 | 0));
 
       context.font = "{fontWeight} {fontSize}px '{fontFamily}'".format(options);

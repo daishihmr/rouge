@@ -27,6 +27,20 @@ phina.namespace(function() {
         }
       });
 
+      var characterTexture = glb.CharacterTexture({
+        fontFamily: "Aldrich",
+        fontSize: 32,
+        fill: "white",
+        stroke: null,
+        shadowColor: "blue",
+        shadowBlur: 10,
+        shadowOffsetX: 0,
+        shadowOffsetY: 0,
+        
+      });
+
+      phina.asset.AssetManager.assets.textureSource["characters.png"] = characterTexture;
+
       this.tweener.wait(66).call(function() {
         this.load();
       }.bind(this));

@@ -19,6 +19,54 @@
   <script src="./lib/bulletml.js"></script>
   <script src="./lib/gl-obj.js"></script>
   <script src="./build/glbullethell.js"></script>
+  <script>
+  phina.namespace(function() {
+    var canvas = document.createElement("canvas");
+    var gl = null;
+    try {
+      gl = canvas.getContext("webgl");
+    } catch (e) {
+      gl = null;
+      glb.ErrorScene.message = "WebGL not supported";
+    }
+
+    phina.main(function() {
+      phina.display.Label.defaults.fontFamily = "Aldrich";
+
+      phina.asset.AssetLoader()
+        .on("load", function() {
+          start()
+        })
+        .load({
+          font: {
+            "Aldrich": "./asset/font/Aldrich/Aldrich-Regular.ttf"
+          }
+        });
+    });
+
+    var start = function() {
+      var scene = gl ? glb.SceneFlow({
+        canvas: canvas,
+        gl: gl
+      }) : glb.ErrorScene();
+
+      var app = phina.display.CanvasApp({
+          width: SCREEN_WIDTH,
+          height: SCREEN_HEIGHT,
+          backgroundColor: "black",
+          fps: 30,
+        })
+        .replaceScene(scene)
+        .enableStats()
+        .run();
+
+      app.gamepadManager = phina.input.GamepadManager();
+      app.update = function() {
+        this.gamepadManager.update();
+      };
+    };
+  });
+  </script>
 </body>
 
 </html>

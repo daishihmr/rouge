@@ -6,19 +6,19 @@ attribute vec2 instancePosition;
 attribute float instanceRotation;
 attribute vec2 instanceScale;
 attribute vec2 instanceFrame;
-attribute float instanceAlpha;
+attribute vec4 instanceColor;
 
 uniform mat4 vpMatrix;
 uniform float globalScale;
 
 varying vec2 vUv;
 varying vec2 vFrame;
-varying float vAlpha;
+varying vec4 vColor;
 
 void main(void) {
   vUv = uv;
   vFrame = instanceFrame;
-  vAlpha = instanceAlpha;
+  vColor = instanceColor;
   
   if (instanceVisible > 0.0) {
     float s = sin(-instanceRotation);

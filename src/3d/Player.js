@@ -206,7 +206,7 @@ phina.namespace(function() {
       var speed = (kb.getKey("LASER") || gp.getKey("LASER")) ? 13 : 24;
 
       this.x = Math.clamp(this.x + dir.x * speed, 10, SCREEN_WIDTH - 10);
-      this.y = Math.clamp(this.y + dir.y * speed, 10, SCREEN_HEIGHT - 10);
+      this.y = Math.clamp(this.y + dir.y * speed, 10, SCREEN_HEIGHT * 0.96);
 
       if (dir.x) {
         this.roll = Math.clamp(this.roll - dir.x * 0.2, -R90, R90);

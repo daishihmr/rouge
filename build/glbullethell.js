@@ -11,40 +11,6 @@ phina.namespace(function() {
   phina.input.Gamepad.BUTTON_CODE["BOMB"] = phina.input.Gamepad.BUTTON_CODE["a"];
   phina.input.Gamepad.BUTTON_CODE["LASER"] = phina.input.Gamepad.BUTTON_CODE["x"];
 
-  var canvas = document.createElement("canvas");
-  var gl = null;
-  try {
-    gl = canvas.getContext("webgl");
-  } catch (e) {
-    gl = null;
-    glb.ErrorScene.message = "WebGL not supported";
-  }
-
-  phina.main(function() {
-    phina.display.Label.defaults.fontFamily = "Aldrich";
-
-    phina.asset.AssetLoader()
-      .on("load", function() { start() })
-      .load({ font: { "Aldrich": "./asset/font/Aldrich/Aldrich-Regular.ttf" } });
-  });
-
-  var start = function() {
-    var app = phina.display.CanvasApp({
-        width: SCREEN_WIDTH,
-        height: SCREEN_HEIGHT,
-        backgroundColor: "black",
-        fps: 30,
-      })
-      .replaceScene(gl ? glb.SceneFlow({ canvas: canvas, gl: gl }) : glb.ErrorScene())
-      .enableStats()
-      .run();
-
-    app.gamepadManager = phina.input.GamepadManager();
-    app.update = function() {
-      this.gamepadManager.update();
-    };
-  };
-
 });
 
 phina.namespace(function() {
@@ -139,7 +105,7 @@ phina.namespace(function() {
       var canvas = phina.graphics.Canvas();
       var context = canvas.context;
 
-      this.unitWidth = Array.range(0, 10)
+      var w = Array.range(0, 10)
         .map(function(i) {
           context.font = "{fontWeight} {fontSize}px '{fontFamily}'".format(options);
           return context.measureText("" + i).width;
@@ -152,10 +118,13 @@ phina.namespace(function() {
         })
         .last + 1 | 0;
 
-      this.unitWidth *= 1.15;
+      var log2 = function(v) {
+        return Math.log(v) / Math.log(2);
+      };
+      this.unitWidth = Math.pow(2, (log2(w) | 0) + 1);
 
       var w = this.unitWidth * 10;
-      var h = options.fontSize;
+      var h = this.unitWidth * 1;
       canvas.setSize(Math.pow(2, Math.log2(w) + 1 | 0), Math.pow(2, Math.log2(h) + 1 | 0));
 
       context.font = "{fontWeight} {fontSize}px '{fontFamily}'".format(options);
@@ -204,12 +173,332 @@ phina.namespace(function() {
         width: SCREEN_WIDTH,
         height: SCREEN_HEIGHT,
       });
+
       this.fromJSON({
         originX: 0,
         originY: 0,
         children: {
-          scorePanel: { className: "glb.ScorePanel" },
+          __test: {
+            className: "phina.display.Sprite",
+            arguments: ["test"],
+            originX: 0,
+            originY: 0,
+          },
+
+          scoreGroup: {
+            className: "phina.display.DisplayElement",
+            originX: 0,
+            originY: 0,
+            children: {
+              bg: {
+                className: "phina.display.RectangleShape",
+                arguments: {
+                  width: SCREEN_WIDTH,
+                  height: SCREEN_HEIGHT * 0.04,
+                  fill: "hsl(240, 100%, 20%)",
+                  stroke: null,
+                  padding: 0,
+                },
+                originX: 0,
+                originY: 0,
+                alpha: 0.8,
+              },
+              score: {
+                className: "phina.display.Label",
+                arguments: {
+                  text: "SCORE:",
+                  fontFamily: "Aldrich",
+                  align: "left",
+                  baseline: "middle",
+                  fill: "white",
+                  stroke: null,
+                  fontSize: SCREEN_HEIGHT * 0.02,
+                },
+                x: SCREEN_WIDTH * 0.04,
+                y: SCREEN_HEIGHT * 0.02,
+              },
+              scoreLabel: {
+                className: "phina.display.Label",
+                arguments: {
+                  text: "999,999,999,999",
+                  fontFamily: "Aldrich",
+                  align: "right",
+                  baseline: "middle",
+                  fill: "white",
+                  stroke: null,
+                  fontSize: SCREEN_HEIGHT * 0.02,
+                },
+                x: SCREEN_WIDTH * 0.49,
+                y: SCREEN_HEIGHT * 0.02,
+              },
+              highScore: {
+                className: "phina.display.Label",
+                arguments: {
+                  text: "HI:",
+                  fontFamily: "Aldrich",
+                  align: "left",
+                  baseline: "middle",
+                  fill: "white",
+                  stroke: null,
+                  fontSize: SCREEN_HEIGHT * 0.02,
+                },
+                x: SCREEN_WIDTH * 0.54,
+                y: SCREEN_HEIGHT * 0.02,
+              },
+              highScoreLabel: {
+                className: "phina.display.Label",
+                arguments: {
+                  text: "999,999,999,999",
+                  fontFamily: "Aldrich",
+                  align: "right",
+                  baseline: "middle",
+                  fill: "white",
+                  stroke: null,
+                  fontSize: SCREEN_HEIGHT * 0.02,
+                },
+                x: SCREEN_WIDTH * 0.99,
+                y: SCREEN_HEIGHT * 0.02,
+              },
+            },
+          },
+
+          gemGroup: {
+            className: "phina.display.DisplayElement",
+            originX: 0,
+            originY: 0,
+            x: SCREEN_WIDTH * 0.01,
+            y: SCREEN_HEIGHT * 0.04,
+            children: {
+              bg: {
+                className: "phina.display.RectangleShape",
+                arguments: {
+                  width: SCREEN_WIDTH * 0.3,
+                  height: SCREEN_HEIGHT * 0.10,
+                  fill: "hsl(240, 100%, 50%)",
+                  stroke: null,
+                  padding: 0,
+                },
+                originX: 0,
+                originY: 0,
+                alpha: 0.25,
+              },
+              gem: {
+                className: "phina.display.Label",
+                arguments: {
+                  text: "GEM",
+                  fontFamily: "Aldrich",
+                  align: "left",
+                  baseline: "top",
+                  fill: "white",
+                  stroke: null,
+                  fontSize: SCREEN_HEIGHT * 0.02,
+                },
+                x: SCREEN_WIDTH * 0.021,
+                y: SCREEN_HEIGHT * 0.01,
+              },
+              gemLabel: {
+                className: "phina.display.Label",
+                arguments: {
+                  text: "9999",
+                  fontFamily: "Aldrich",
+                  align: "right",
+                  baseline: "top",
+                  fill: "white",
+                  stroke: null,
+                  fontSize: SCREEN_HEIGHT * 0.04,
+                },
+                x: SCREEN_WIDTH * 0.29,
+                y: SCREEN_HEIGHT * 0.01,
+              },
+              totalGemLabel: {
+                className: "phina.display.Label",
+                arguments: {
+                  text: "999999",
+                  fontFamily: "Aldrich",
+                  align: "right",
+                  baseline: "top",
+                  fill: "white",
+                  stroke: null,
+                  fontSize: SCREEN_HEIGHT * 0.03,
+                },
+                x: SCREEN_WIDTH * 0.29,
+                y: SCREEN_HEIGHT * 0.06,
+              },
+            },
+          },
+
+          zankiGroup: {
+            className: "phina.display.DisplayElement",
+            originX: 0,
+            originY: 0,
+            x: SCREEN_WIDTH * 0.01,
+            y: SCREEN_HEIGHT * 0.15,
+            children: [{
+              className: "glb.ZankiSprite",
+              originX: 0,
+              originY: 0,
+              x: SCREEN_WIDTH * 0.045 * 0,
+              y: SCREEN_WIDTH * 0.045 * 0,
+            }, {
+              className: "glb.ZankiSprite",
+              originX: 0,
+              originY: 0,
+              x: SCREEN_WIDTH * 0.045 * 1,
+              y: SCREEN_WIDTH * 0.045 * 1,
+            }, {
+              className: "glb.ZankiSprite",
+              originX: 0,
+              originY: 0,
+              x: SCREEN_WIDTH * 0.045 * 2,
+              y: SCREEN_WIDTH * 0.045 * 0,
+            }, {
+              className: "glb.ZankiSprite",
+              originX: 0,
+              originY: 0,
+              x: SCREEN_WIDTH * 0.045 * 3,
+              y: SCREEN_WIDTH * 0.045 * 1,
+            }, {
+              className: "glb.ZankiSprite",
+              originX: 0,
+              originY: 0,
+              x: SCREEN_WIDTH * 0.045 * 4,
+              y: SCREEN_WIDTH * 0.045 * 0,
+            }, ],
+          },
+
+          bombGroup: {
+            className: "phina.display.DisplayElement",
+            originX: 0,
+            originY: 0,
+            x: 0,
+            y: SCREEN_HEIGHT * 0.96,
+            children: {
+              bg: {
+                className: "phina.display.RectangleShape",
+                arguments: {
+                  width: SCREEN_WIDTH,
+                  height: SCREEN_HEIGHT * 0.04,
+                  fill: "hsl(210, 100%, 20%)",
+                  stroke: null,
+                  padding: 0,
+                },
+                originX: 0,
+                originY: 0,
+                alpha: 0.8,
+                children: [{
+                  className: "glb.BombSprite",
+                  x: SCREEN_WIDTH * 0.05 * 0.5,
+                  y: SCREEN_HEIGHT * 0.02,
+                }, {
+                  className: "glb.BombSprite",
+                  x: SCREEN_WIDTH * 0.05 * 1.5,
+                  y: SCREEN_HEIGHT * 0.02,
+                }, {
+                  className: "glb.BombSprite",
+                  x: SCREEN_WIDTH * 0.05 * 2.5,
+                  y: SCREEN_HEIGHT * 0.02,
+                }, {
+                  className: "glb.BombSprite",
+                  x: SCREEN_WIDTH * 0.05 * 3.5,
+                  y: SCREEN_HEIGHT * 0.02,
+                }, {
+                  className: "glb.BombSprite",
+                  x: SCREEN_WIDTH * 0.05 * 4.5,
+                  y: SCREEN_HEIGHT * 0.02,
+                }, {
+                  className: "glb.BombSprite",
+                  x: SCREEN_WIDTH * 0.05 * 5.5,
+                  y: SCREEN_HEIGHT * 0.02,
+                }, {
+                  className: "glb.BombSprite",
+                  x: SCREEN_WIDTH * 0.05 * 6.5,
+                  y: SCREEN_HEIGHT * 0.02,
+                }, ],
+              },
+            },
+          },
+
         },
+      });
+    },
+  });
+
+  phina.define("glb.ZankiSprite", {
+    superClass: "phina.display.Shape",
+
+    init: function() {
+      var size = SCREEN_WIDTH * 0.08;
+      this.superInit({
+        width: size,
+        height: size,
+        backgroundColor: "transparent",
+        fill: "hsl(240, 100%, 10%)",
+        stroke: "hsl(240, 100%, 80%)",
+        strokeWidth: 1,
+        padding: 0,
+      });
+
+      this.fromJSON({
+        children: [{
+          className: "phina.display.Sprite",
+          arguments: ["zanki", size * 0.75, size * 0.75],
+          x: size / 2,
+          y: size / 2,
+          originX: 0.5,
+          originY: 0.5,
+        }],
+      });
+    },
+
+    prerender: function(canvas) {
+      var size = SCREEN_WIDTH * 0.08;
+      canvas.moveTo(0, -size / 2);
+      canvas.lineTo(size / 2, 0);
+      canvas.lineTo(0, size / 2);
+      canvas.lineTo(-size / 2, 0);
+      canvas.closePath();
+      canvas.fill();
+      canvas.stroke();
+    },
+  });
+
+  phina.define("glb.BombSprite", {
+    superClass: "phina.display.PolygonShape",
+
+    init: function() {
+      var size = SCREEN_WIDTH * 0.05;
+      this.superInit({
+        width: size,
+        height: size,
+        backgroundColor: "transparent",
+        fill: "hsl(240, 100%, 10%)",
+        stroke: "hsl(240, 100%, 80%)",
+        strokeWidth: 1,
+        padding: 0,
+        sides: 6,
+        radius: size / 2,
+      });
+
+      this.fromJSON({
+        onenterframe: function() {
+          this.rotation += 5;
+        },
+        children: [{
+          className: "phina.display.Label",
+          arguments: {
+            text: "B",
+            fontFamily: "Aldrich",
+            fill: "yellow",
+            align: "center",
+            baseline: "middle",
+            fontSize: SCREEN_WIDTH * 0.04,
+          },
+          x: 0,
+          y: 0,
+          onenterframe: function() {
+            this.rotation -= 5;
+          },
+        }],
       });
     },
   });
@@ -491,6 +780,79 @@ phina.namespace(function() {
 
 phina.namespace(function() {
 
+  phina.define("glb.CharacterTexture", {
+    superClass: "phina.graphics.Canvas",
+
+    init: function(options) {
+      this.superInit();
+      options = {}.$extend({
+        fontSize: 20,
+        fontFamily: "sans-serif",
+        fill: "white",
+        stroke: null,
+        fontWeight: "",
+        characters: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+        shadowColor: "transparent",
+        shadowBlur: 0,
+        shadowOffsetX: 0,
+        shadowOffsetY: 0,
+      }, options);
+
+      var context = this.context;
+      this.characters = options.characters;
+
+      var u = Array.range(0, 10)
+        .map(function(i) {
+          context.font = "{fontWeight} {fontSize}px '{fontFamily}'".format(options);
+          return context.measureText("" + i).width;
+        })
+        .sort(function(lhs, rhs) {
+          return lhs - rhs;
+        })
+        .map(function(u) {
+          return u;
+        })
+        .last + 1 | 0;
+
+      var log2 = function(v) {
+        return Math.log(v) / Math.log(2);
+      };
+
+      var w = Math.pow(2, (log2(u) | 0) + 1);
+      var h = Math.pow(2, (log2(options.fontSize) | 0) + 1);
+      this.setSize(w * 8, h * 8);
+      context.font = "{fontWeight} {fontSize}px '{fontFamily}'".format(options);
+      context.fillStyle = options.fill;
+      context.strokeStyle = options.stroke;
+      context.textAlign = "center"
+      context.textBaseline = "middle";
+      context.shadowColor = options.shadowColor;
+      context.shadowBlur = options.shadowBlur;
+      context.shadowOffsetX = options.shadowOffsetX;
+      context.shadowOffsetY = options.shadowOffsetY;
+      for (var i = 0; i < this.characters.length; i++) {
+        var c = this.characters[i];
+        var x = i % 8;
+        var y = ~~(i / 8);
+        if (options.fill) context.fillText(c, w * (x + 0.5), h * (y + 0.5));
+        if (options.stroke) context.strokeText(c, w * (x + 0.5), h * (y + 0.5));
+      }
+    },
+
+    calcFrame: function(character) {
+      var i = this.characters.indexOf(character);
+      return {
+        frameX: i % 8,
+        frameY: ~~(i / 8),
+      };
+    },
+
+  });
+
+});
+
+phina.namespace(function() {
+
   phina.define("glb.Collisions", {
     superClass: "phina.util.EventDispatcher",
 
@@ -700,12 +1062,12 @@ phina.namespace(function() {
     small: function(x, y) {
       var glLayer = this.glLayer;
 
-      (7).times(function() {
+      (10).times(function() {
         var e = glLayer.spriteDrawer.get("effect");
         if (!e) return;
 
         var a = Math.randfloat(0, Math.PI * 2);
-        var r = Math.randfloat(30, 45);
+        var r = Math.randfloat(20, 35);
         e
           .spawn({
             x: x + Math.cos(a) * r * 0.2,
@@ -727,7 +1089,7 @@ phina.namespace(function() {
             scaleX: 3,
             scaleY: 3,
             alpha: 0,
-          }, 333, "easeOutQuad")
+          }, 500, "easeOutQuad")
           .call(function() {
             e.remove();
           });
@@ -759,7 +1121,7 @@ phina.namespace(function() {
             x: x + Math.cos(a) * r,
             y: y + Math.sin(a) * r,
             alpha: 0,
-          }, 666, "easeOutQuad")
+          }, 900, "easeOutQuad")
           .call(function() {
             e.remove();
           });
@@ -901,9 +1263,27 @@ phina.namespace(function() {
       this.playerDrawer.addObjType("bit", "bit", 4);
       this.playerDrawer.addObjType("bitJoin", "bitJoin", 1);
       this.playerDrawer.addObjType("barrier", "barrier", 1);
-      this.spriteDrawer.addObjType("shot", "effect", 160, "glb.Shot");
-      this.spriteDrawer.addObjType("laser", "effect", 20, "glb.Laser");
-      this.spriteDrawer.addObjType("effect", "effect", 3000);
+      this.spriteDrawer.addObjType("shot", {
+        texture: "effect.png",
+        count: 160,
+        className: "glb.Shot",
+        additiveBlending: true,
+      });
+      this.spriteDrawer.addObjType("laser", {
+        texture: "effect.png",
+        count: 20,
+        className: "glb.Laser",
+        additiveBlending: true,
+      });
+      this.spriteDrawer.addObjType("effect", {
+        texture: "effect.png",
+        count: 2000,
+        additiveBlending: true,
+      });
+      this.spriteDrawer.addObjType("characters", {
+        texture: "characters.png",
+        count: 2000,
+      });
     },
 
     update: function(app) {
@@ -1100,6 +1480,89 @@ phina.namespace(function() {
 
   });
 
+});
+
+phina.namespace(function() {
+
+  phina.define("glb.Label", {
+    superClass: "phina.app.Element",
+    
+    red: 1,
+    green: 1,
+    blue: 1,
+    alpha: 1,
+
+    init: function(options) {
+      this.superInit();
+      options = {}.$extend({
+        spriteDrawer: null,
+        spriteType: "characters",
+        texture: "characters.png",
+        text: "0",
+        x: 0,
+        y: 0,
+      }, options);
+
+      this.spriteDrawer = options.spriteDrawer;
+      this.spriteType = options.spriteType;
+      this.characterTexture = phina.asset.AssetManager.get("textureSource", options.texture);
+      this.x = options.x;
+      this.y = options.y;
+      this.text = options.text;
+
+      var self = this;
+      this.text.split("").forEach(function(c, i) {
+        var frame = self.characterTexture.calcFrame(c);
+        var sprite = self.spriteDrawer.get(self.spriteType);
+        if (sprite) {
+          sprite
+            .spawn(frame)
+            .addChildTo(self);
+        }
+      });
+    },
+
+    setText: function(text) {
+      var self = this;
+      self.text = text;
+      text.split("").forEach(function(c, i) {
+        var frame = self.characterTexture.calcFrame(c);
+        var sprite = self.children[i];
+        if (!sprite) {
+          sprite = self.spriteDrawer.get(self.spriteType);
+          if (sprite) {
+            sprite
+              .spawn({})
+              .addChildTo(self);
+          }
+        }
+
+        if (sprite) sprite.$extend(frame);
+      });
+    },
+
+    update: function() {
+      var self = this;
+      this.children.forEach(function(c, i) {
+        c.visible = true;
+        c.x = self.x + i * 15 - self.text.length * 10;
+        c.y = self.y;
+        c.scaleX = 0.8 * 1.0;
+        c.scaleY = 0.8 * 2.0;
+        c.red = self.red;
+        c.green = self.green;
+        c.blue = self.blue;
+        c.alpha = self.alpha;
+      });
+    },
+
+    onremoved: function() {
+      this.children.clone().forEach(function(child) {
+        child.remove();
+      });
+    },
+
+  });
 });
 
 phina.namespace(function() {
@@ -1810,7 +2273,7 @@ phina.namespace(function() {
       var speed = (kb.getKey("LASER") || gp.getKey("LASER")) ? 13 : 24;
 
       this.x = Math.clamp(this.x + dir.x * speed, 10, SCREEN_WIDTH - 10);
-      this.y = Math.clamp(this.y + dir.y * speed, 10, SCREEN_HEIGHT - 10);
+      this.y = Math.clamp(this.y + dir.y * speed, 10, SCREEN_HEIGHT * 0.96);
 
       if (dir.x) {
         this.roll = Math.clamp(this.roll - dir.x * 0.2, -R90, R90);
@@ -2219,11 +2682,21 @@ phina.namespace(function() {
 
     id: -1,
     instanceData: null,
+    
+    visible: true,
 
     x: 0,
     y: 0,
     rotation: 0,
     scale: 0,
+
+    frameX: 0,
+    frameY: 0,
+
+    red: 1.0,
+    green: 1.0,
+    blue: 1.0,
+    alpha: 1.0,
 
     age: 0,
 
@@ -2236,18 +2709,23 @@ phina.namespace(function() {
 
     spawn: function(options) {
       options.$safe({
+        visible: true,
         x: 0,
         y: 0,
         rotation: 0,
         scale: 1,
         frameX: 0,
         frameY: 0,
-        alpha: 1,
+        red: 1.0,
+        green: 1.0,
+        blue: 1.0,
+        alpha: 1.0,
       });
 
       var index = this.index;
       var instanceData = this.instanceData;
 
+      this.visible = options.visible;
       this.x = options.x;
       this.y = options.y;
       this.rotation = options.rotation;
@@ -2255,9 +2733,12 @@ phina.namespace(function() {
       this.scaleY = options.scaleY;
       this.frameX = options.frameX;
       this.frameY = options.frameY;
+      this.red = options.red;
+      this.green = options.green;
+      this.blue = options.blue;
       this.alpha = options.alpha;
 
-      instanceData[index + 0] = 1; // visible
+      instanceData[index + 0] = this.visible ? 1 : 0; // visible
       instanceData[index + 1] = this.x; // position.x
       instanceData[index + 2] = this.y; // position.y
       instanceData[index + 3] = this.rotation; // rotation
@@ -2265,7 +2746,10 @@ phina.namespace(function() {
       instanceData[index + 5] = this.scaleY; // scale
       instanceData[index + 6] = this.frameX; // frame.x
       instanceData[index + 7] = this.frameY; // frame.y
-      instanceData[index + 8] = this.alpha; // alpha
+      instanceData[index + 8] = this.red; // red
+      instanceData[index + 9] = this.green; // green
+      instanceData[index + 10] = this.blue; // blue
+      instanceData[index + 11] = this.alpha; // alpha
 
       this.age = 0;
 
@@ -2281,6 +2765,7 @@ phina.namespace(function() {
         return;
       }
 
+      instanceData[index + 0] = this.visible ? 1 : 0; // visible
       instanceData[index + 1] = this.x; // position.x
       instanceData[index + 2] = this.y; // position.y
       instanceData[index + 3] = this.rotation; // rotation
@@ -2288,14 +2773,18 @@ phina.namespace(function() {
       instanceData[index + 5] = this.scaleY; // scale
       instanceData[index + 6] = this.frameX; // frame.x
       instanceData[index + 7] = this.frameY; // frame.y
-      instanceData[index + 8] = this.alpha; // alpha
+      instanceData[index + 8] = this.red; // red
+      instanceData[index + 9] = this.green; // green
+      instanceData[index + 10] = this.blue; // blue
+      instanceData[index + 11] = this.alpha; // alpha
 
       this.age += 1;
     },
 
     onremoved: function() {
+      this.visible = false;
       this.instanceData[this.index + 0] = 0;
-    }
+    },
   });
 
 });
@@ -2306,24 +2795,13 @@ phina.namespace(function() {
     superClass: "phigl.InstancedDrawable",
 
     objTypes: null,
-
-    counts: null,
-    instanceData: null,
-    textures: null,
-    pools: null,
-
-    additiveBlending: true,
+    objParameters: null,
 
     init: function(gl, ext, w, h) {
       this.superInit(gl, ext);
 
       this.objTypes = [];
-
-      this.counts = {};
-      this.instanceData = {};
-      this.instanceVbos = {};
-      this.textures = {};
-      this.pools = {};
+      this.objParameters = [];
 
       this
         .setProgram(phina.asset.AssetManager.get("shader", "sprites"))
@@ -2361,7 +2839,7 @@ phina.namespace(function() {
           "instanceRotation",
           "instanceScale",
           "instanceFrame",
-          "instanceAlpha"
+          "instanceColor"
         )
         .setUniforms(
           "vpMatrix",
@@ -2374,59 +2852,53 @@ phina.namespace(function() {
       this.uniforms.globalScale.setValue(1.0);
     },
 
-    addObjType: function(objName, textureName, count, className) {
-      className = className || "glb.Sprite";
-
-      count = count || 1;
-      var self = this;
-      var instanceStride = this.instanceStride / 4;
+    addObjType: function(objName, options) {
+      options = {}.$extend({
+        className: "glb.Sprite",
+        count: 1,
+        texture: null,
+        additiveBlending: false,
+      }, options);
 
       if (!this.objTypes.contains(objName)) {
-        this.counts[objName] = count;
-        var instanceData = this.instanceData[objName] = Array.range(count).map(function(i) {
-          return [
-            // visible
-            0,
-            // m0
-            1, 0, 0,
-            // m1
-            0, 1, 0,
-            // m2
-            0, 0, 1,
-            // m3
-            0, 0, 0,
-          ];
-        }).flatten();
-        this.instanceVbos[objName] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW);
-
-        this.textures[objName] = phina.asset.AssetManager.get("texture", textureName + ".png");
-
-        var ObjClass = phina.using(className);
-        this.pools[objName] = Array.range(count).map(function(id) {
-          return ObjClass(id, instanceData, instanceStride)
-            .on("removed", function() {
-              self.pools[objName].push(this);
-            });
-        });
+        var self = this;
+        var instanceStride = this.instanceStride / 4;
 
         this.objTypes.push(objName);
+        var objParameter = this.objParameters[objName] = {
+          count: options.count,
+          instanceVbo: phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW),
+          texture: phina.asset.AssetManager.get("texture", options.texture),
+          pool: null,
+          additiveBlending: options.additiveBlending,
+          instanceData: Array.range(options.count).map(function(i) {
+            return [
+              // visible
+              0,
+              // m0
+              1, 0, 0,
+              // m1
+              0, 1, 0,
+              // m2
+              0, 0, 1,
+              // m3
+              0, 0, 0,
+            ];
+          }).flatten(),
+        };
+
+        var ObjClass = phina.using(options.className);
+        objParameter.pool = Array.range(options.count).map(function(id) {
+          return ObjClass(id, objParameter.instanceData, instanceStride)
+            .on("removed", function() {
+              objParameter.pool.push(this);
+            });
+        });
       }
     },
 
-    _createTexture: function() {
-      var texture = phina.graphics.Canvas().setSize(512, 512);
-      var context = texture.context;
-      var g = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-      g.addColorStop(0.0, "rgba(255, 255, 255, 0.3)");
-      g.addColorStop(0.6, "rgba(255, 125,   0, 0.3)");
-      g.addColorStop(1.0, "rgba(255,   0,   0, 0.0)");
-      context.fillStyle = g;
-      context.fillRect(0, 0, 64, 64);
-      return texture;
-    },
-
     get: function(objName) {
-      return this.pools[objName].shift();
+      return this.objParameters[objName].pool.shift();
     },
 
     update: function() {},
@@ -2434,11 +2906,6 @@ phina.namespace(function() {
     render: function(uniforms) {
       var gl = this.gl;
       gl.enable(gl.BLEND);
-      if (this.additiveBlending) {
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-      } else {
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      }
       gl.disable(gl.DEPTH_TEST);
 
       this.uniforms.globalScale.value = 1.0;
@@ -2450,16 +2917,19 @@ phina.namespace(function() {
       }
       var self = this;
       this.objTypes.forEach(function(objName) {
-        var count = self.counts[objName];
-        var instanceData = self.instanceData[objName];
-        var instanceVbo = self.instanceVbos[objName];
-        var texture = self.textures[objName];
+        var objParameter = self.objParameters[objName];
 
-        instanceVbo.set(instanceData);
+        if (objParameter.additiveBlending) {
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        } else {
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        }
 
-        self.setInstanceAttributeVbo(instanceVbo);
-        self.uniforms.texture.setValue(0).setTexture(texture);
-        self.draw(count);
+        self.setInstanceAttributeVbo(
+          objParameter.instanceVbo.set(objParameter.instanceData)
+        );
+        self.uniforms.texture.setValue(0).setTexture(objParameter.texture);
+        self.draw(objParameter.count);
       });
     },
   });
@@ -2632,6 +3102,9 @@ phina.namespace(function() {
         switch (options.assetType) {
           case "common":
             return {
+              image: {
+                "zanki": "./asset/image/zanki.png",
+              },
               obj: {
                 "fighter.obj": "./asset/obj/fighter.obj",
                 "bit.obj": "./asset/obj/bit.obj",
@@ -3040,6 +3513,20 @@ phina.namespace(function() {
         }
       });
 
+      var characterTexture = glb.CharacterTexture({
+        fontFamily: "Aldrich",
+        fontSize: 32,
+        fill: "white",
+        stroke: null,
+        shadowColor: "blue",
+        shadowBlur: 10,
+        shadowOffsetX: 0,
+        shadowOffsetY: 0,
+        
+      });
+
+      phina.asset.AssetManager.assets.textureSource["characters.png"] = characterTexture;
+
       this.tweener.wait(66).call(function() {
         this.load();
       }.bind(this));
@@ -3394,12 +3881,55 @@ phina.namespace(function() {
         var e = this.launchEnemy("enemyS" + Math.randint(1, 5), 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
         if (e) {
           quat.setAxisAngle(e.quaternion, [0, 0, 1], (90).toRadian());
-          // e.dirty = true;
+          e.dirty = true;
           // e.on("enterframe", function() {
           //   this.y += 1;
           // });
         }
       }
+
+      this.on("enterframe", function(e) {
+        if (e.app.ticker.frame % 10 != 0) return;
+
+        (5).times(function() {
+
+          var x = Math.random() * SCREEN_WIDTH + 30;
+          var y = Math.random() * SCREEN_HEIGHT;
+          
+          explosion.small(x, y);
+
+          var value = Math.randint(2, 9999);
+          var label = glb.Label({
+              spriteDrawer: glLayer.spriteDrawer,
+              x: x,
+              y: y,
+              text: "x0",
+            })
+            .$extend({ value: 0 })
+            .addChildTo(glLayer)
+            .on("enterframe", function() {
+              this.setText("x" + ~~(this.value))
+            })
+          label
+            .tweener
+            .set({
+              alpha: 1,
+            })
+            .to({
+              y: y - 30,
+              value: value,
+            }, 500, "easeOutQuad")
+            .wait(50)
+            .to({
+              alpha: 0,
+            }, 200)
+            .call(function() {
+              label.remove();
+            });
+
+        });
+      });
+
 
       player.launch();
     },
@@ -3431,7 +3961,6 @@ phina.namespace(function() {
       }
 
       if (app.keyboard.getKeyDown("l")) {
-
         this.player.launch();
       }
     },

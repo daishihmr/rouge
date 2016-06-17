@@ -6,6 +6,9 @@ phina.namespace(function() {
         switch (options.assetType) {
           case "common":
             return {
+              image: {
+                "zanki": "./asset/image/zanki.png",
+              },
               obj: {
                 "fighter.obj": "./asset/obj/fighter.obj",
                 "bit.obj": "./asset/obj/bit.obj",

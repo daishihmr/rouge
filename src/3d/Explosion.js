@@ -45,12 +45,12 @@ phina.namespace(function() {
     small: function(x, y) {
       var glLayer = this.glLayer;
 
-      (7).times(function() {
+      (10).times(function() {
         var e = glLayer.spriteDrawer.get("effect");
         if (!e) return;
 
         var a = Math.randfloat(0, Math.PI * 2);
-        var r = Math.randfloat(30, 45);
+        var r = Math.randfloat(20, 35);
         e
           .spawn({
             x: x + Math.cos(a) * r * 0.2,
@@ -72,7 +72,7 @@ phina.namespace(function() {
             scaleX: 3,
             scaleY: 3,
             alpha: 0,
-          }, 333, "easeOutQuad")
+          }, 500, "easeOutQuad")
           .call(function() {
             e.remove();
           });
@@ -104,7 +104,7 @@ phina.namespace(function() {
             x: x + Math.cos(a) * r,
             y: y + Math.sin(a) * r,
             alpha: 0,
-          }, 666, "easeOutQuad")
+          }, 900, "easeOutQuad")
           .call(function() {
             e.remove();
           });

@@ -130,9 +130,27 @@ phina.namespace(function() {
       this.playerDrawer.addObjType("bit", "bit", 4);
       this.playerDrawer.addObjType("bitJoin", "bitJoin", 1);
       this.playerDrawer.addObjType("barrier", "barrier", 1);
-      this.spriteDrawer.addObjType("shot", "effect", 160, "glb.Shot");
-      this.spriteDrawer.addObjType("laser", "effect", 20, "glb.Laser");
-      this.spriteDrawer.addObjType("effect", "effect", 3000);
+      this.spriteDrawer.addObjType("shot", {
+        texture: "effect.png",
+        count: 160,
+        className: "glb.Shot",
+        additiveBlending: true,
+      });
+      this.spriteDrawer.addObjType("laser", {
+        texture: "effect.png",
+        count: 20,
+        className: "glb.Laser",
+        additiveBlending: true,
+      });
+      this.spriteDrawer.addObjType("effect", {
+        texture: "effect.png",
+        count: 2000,
+        additiveBlending: true,
+      });
+      this.spriteDrawer.addObjType("characters", {
+        texture: "characters.png",
+        count: 2000,
+      });
     },
 
     update: function(app) {

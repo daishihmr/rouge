@@ -4,24 +4,13 @@ phina.namespace(function() {
     superClass: "phigl.InstancedDrawable",
 
     objTypes: null,
-
-    counts: null,
-    instanceData: null,
-    textures: null,
-    pools: null,
-
-    additiveBlending: true,
+    objParameters: null,
 
     init: function(gl, ext, w, h) {
       this.superInit(gl, ext);
 
       this.objTypes = [];
-
-      this.counts = {};
-      this.instanceData = {};
-      this.instanceVbos = {};
-      this.textures = {};
-      this.pools = {};
+      this.objParameters = [];
 
       this
         .setProgram(phina.asset.AssetManager.get("shader", "sprites"))
@@ -59,7 +48,7 @@ phina.namespace(function() {
           "instanceRotation",
           "instanceScale",
           "instanceFrame",
-          "instanceAlpha"
+          "instanceColor"
         )
         .setUniforms(
           "vpMatrix",
@@ -72,59 +61,53 @@ phina.namespace(function() {
       this.uniforms.globalScale.setValue(1.0);
     },
 
-    addObjType: function(objName, textureName, count, className) {
-      className = className || "glb.Sprite";
-
-      count = count || 1;
-      var self = this;
-      var instanceStride = this.instanceStride / 4;
+    addObjType: function(objName, options) {
+      options = {}.$extend({
+        className: "glb.Sprite",
+        count: 1,
+        texture: null,
+        additiveBlending: false,
+      }, options);
 
       if (!this.objTypes.contains(objName)) {
-        this.counts[objName] = count;
-        var instanceData = this.instanceData[objName] = Array.range(count).map(function(i) {
-          return [
-            // visible
-            0,
-            // m0
-            1, 0, 0,
-            // m1
-            0, 1, 0,
-            // m2
-            0, 0, 1,
-            // m3
-            0, 0, 0,
-          ];
-        }).flatten();
-        this.instanceVbos[objName] = phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW);
-
-        this.textures[objName] = phina.asset.AssetManager.get("texture", textureName + ".png");
-
-        var ObjClass = phina.using(className);
-        this.pools[objName] = Array.range(count).map(function(id) {
-          return ObjClass(id, instanceData, instanceStride)
-            .on("removed", function() {
-              self.pools[objName].push(this);
-            });
-        });
+        var self = this;
+        var instanceStride = this.instanceStride / 4;
 
         this.objTypes.push(objName);
+        var objParameter = this.objParameters[objName] = {
+          count: options.count,
+          instanceVbo: phigl.Vbo(this.gl, this.gl.DYNAMIC_DRAW),
+          texture: phina.asset.AssetManager.get("texture", options.texture),
+          pool: null,
+          additiveBlending: options.additiveBlending,
+          instanceData: Array.range(options.count).map(function(i) {
+            return [
+              // visible
+              0,
+              // m0
+              1, 0, 0,
+              // m1
+              0, 1, 0,
+              // m2
+              0, 0, 1,
+              // m3
+              0, 0, 0,
+            ];
+          }).flatten(),
+        };
+
+        var ObjClass = phina.using(options.className);
+        objParameter.pool = Array.range(options.count).map(function(id) {
+          return ObjClass(id, objParameter.instanceData, instanceStride)
+            .on("removed", function() {
+              objParameter.pool.push(this);
+            });
+        });
       }
     },
 
-    _createTexture: function() {
-      var texture = phina.graphics.Canvas().setSize(512, 512);
-      var context = texture.context;
-      var g = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-      g.addColorStop(0.0, "rgba(255, 255, 255, 0.3)");
-      g.addColorStop(0.6, "rgba(255, 125,   0, 0.3)");
-      g.addColorStop(1.0, "rgba(255,   0,   0, 0.0)");
-      context.fillStyle = g;
-      context.fillRect(0, 0, 64, 64);
-      return texture;
-    },
-
     get: function(objName) {
-      return this.pools[objName].shift();
+      return this.objParameters[objName].pool.shift();
     },
 
     update: function() {},
@@ -132,11 +115,6 @@ phina.namespace(function() {
     render: function(uniforms) {
       var gl = this.gl;
       gl.enable(gl.BLEND);
-      if (this.additiveBlending) {
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-      } else {
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      }
       gl.disable(gl.DEPTH_TEST);
 
       this.uniforms.globalScale.value = 1.0;
@@ -148,16 +126,19 @@ phina.namespace(function() {
       }
       var self = this;
       this.objTypes.forEach(function(objName) {
-        var count = self.counts[objName];
-        var instanceData = self.instanceData[objName];
-        var instanceVbo = self.instanceVbos[objName];
-        var texture = self.textures[objName];
+        var objParameter = self.objParameters[objName];
 
-        instanceVbo.set(instanceData);
+        if (objParameter.additiveBlending) {
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        } else {
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        }
 
-        self.setInstanceAttributeVbo(instanceVbo);
-        self.uniforms.texture.setValue(0).setTexture(texture);
-        self.draw(count);
+        self.setInstanceAttributeVbo(
+          objParameter.instanceVbo.set(objParameter.instanceData)
+        );
+        self.uniforms.texture.setValue(0).setTexture(objParameter.texture);
+        self.draw(objParameter.count);
       });
     },
   });
