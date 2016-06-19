@@ -8,17 +8,22 @@ phina.namespace(function() {
         width: SCREEN_WIDTH,
         height: SCREEN_HEIGHT,
       });
+      
+      var self = this;
 
       this.fromJSON({
         originX: 0,
         originY: 0,
         children: {
-          __test: {
-            className: "phina.display.Sprite",
-            arguments: ["test"],
-            originX: 0,
-            originY: 0,
-          },
+          // __test: {
+          //   className: "phina.display.Sprite",
+          //   arguments: ["test"],
+          //   originX: 0,
+          //   originY: 0,
+          //   onenterframe: function() {
+          //     self.scoreGroup.scoreLabel.text = Math.randint(0, 999999999999).separateComma();
+          //   },
+          // },
 
           scoreGroup: {
             className: "phina.display.DisplayElement",
@@ -30,7 +35,7 @@ phina.namespace(function() {
                 arguments: {
                   width: SCREEN_WIDTH,
                   height: SCREEN_HEIGHT * 0.04,
-                  fill: "hsl(240, 100%, 20%)",
+                  fill: "black",
                   stroke: null,
                   padding: 0,
                 },
@@ -39,57 +44,53 @@ phina.namespace(function() {
                 alpha: 0.8,
               },
               score: {
-                className: "phina.display.Label",
+                className: "glb.UILabel",
                 arguments: {
                   text: "SCORE:",
-                  fontFamily: "Aldrich",
                   align: "left",
                   baseline: "middle",
                   fill: "white",
                   stroke: null,
-                  fontSize: SCREEN_HEIGHT * 0.02,
+                  fontSize: SCREEN_HEIGHT * 0.025,
                 },
                 x: SCREEN_WIDTH * 0.04,
                 y: SCREEN_HEIGHT * 0.02,
               },
               scoreLabel: {
-                className: "phina.display.Label",
+                className: "glb.UILabel",
                 arguments: {
                   text: "999,999,999,999",
-                  fontFamily: "Aldrich",
                   align: "right",
                   baseline: "middle",
                   fill: "white",
                   stroke: null,
-                  fontSize: SCREEN_HEIGHT * 0.02,
+                  fontSize: SCREEN_HEIGHT * 0.025,
                 },
                 x: SCREEN_WIDTH * 0.49,
                 y: SCREEN_HEIGHT * 0.02,
               },
               highScore: {
-                className: "phina.display.Label",
+                className: "glb.UILabel",
                 arguments: {
                   text: "HI:",
-                  fontFamily: "Aldrich",
                   align: "left",
                   baseline: "middle",
                   fill: "white",
                   stroke: null,
-                  fontSize: SCREEN_HEIGHT * 0.02,
+                  fontSize: SCREEN_HEIGHT * 0.025,
                 },
                 x: SCREEN_WIDTH * 0.54,
                 y: SCREEN_HEIGHT * 0.02,
               },
               highScoreLabel: {
-                className: "phina.display.Label",
+                className: "glb.UILabel",
                 arguments: {
                   text: "999,999,999,999",
-                  fontFamily: "Aldrich",
                   align: "right",
                   baseline: "middle",
                   fill: "white",
                   stroke: null,
-                  fontSize: SCREEN_HEIGHT * 0.02,
+                  fontSize: SCREEN_HEIGHT * 0.025,
                 },
                 x: SCREEN_WIDTH * 0.99,
                 y: SCREEN_HEIGHT * 0.02,
@@ -118,10 +119,9 @@ phina.namespace(function() {
                 alpha: 0.25,
               },
               gem: {
-                className: "phina.display.Label",
+                className: "glb.UILabel",
                 arguments: {
                   text: "GEM",
-                  fontFamily: "Aldrich",
                   align: "left",
                   baseline: "top",
                   fill: "white",
@@ -132,10 +132,9 @@ phina.namespace(function() {
                 y: SCREEN_HEIGHT * 0.01,
               },
               gemLabel: {
-                className: "phina.display.Label",
+                className: "glb.UILabel",
                 arguments: {
                   text: "9999",
-                  fontFamily: "Aldrich",
                   align: "right",
                   baseline: "top",
                   fill: "white",
@@ -146,10 +145,9 @@ phina.namespace(function() {
                 y: SCREEN_HEIGHT * 0.01,
               },
               totalGemLabel: {
-                className: "phina.display.Label",
+                className: "glb.UILabel",
                 arguments: {
                   text: "999999",
-                  fontFamily: "Aldrich",
                   align: "right",
                   baseline: "top",
                   fill: "white",
@@ -172,32 +170,32 @@ phina.namespace(function() {
               className: "glb.ZankiSprite",
               originX: 0,
               originY: 0,
-              x: SCREEN_WIDTH * 0.045 * 0,
-              y: SCREEN_WIDTH * 0.045 * 0,
+              x: SCREEN_WIDTH * 0.03 * 0,
+              y: SCREEN_WIDTH * 0.03 * 0,
             }, {
               className: "glb.ZankiSprite",
               originX: 0,
               originY: 0,
-              x: SCREEN_WIDTH * 0.045 * 1,
-              y: SCREEN_WIDTH * 0.045 * 1,
+              x: SCREEN_WIDTH * 0.03 * 1,
+              y: SCREEN_WIDTH * 0.03 * 1,
             }, {
               className: "glb.ZankiSprite",
               originX: 0,
               originY: 0,
-              x: SCREEN_WIDTH * 0.045 * 2,
-              y: SCREEN_WIDTH * 0.045 * 0,
+              x: SCREEN_WIDTH * 0.03 * 2,
+              y: SCREEN_WIDTH * 0.03 * 0,
             }, {
               className: "glb.ZankiSprite",
               originX: 0,
               originY: 0,
-              x: SCREEN_WIDTH * 0.045 * 3,
-              y: SCREEN_WIDTH * 0.045 * 1,
+              x: SCREEN_WIDTH * 0.03 * 3,
+              y: SCREEN_WIDTH * 0.03 * 1,
             }, {
               className: "glb.ZankiSprite",
               originX: 0,
               originY: 0,
-              x: SCREEN_WIDTH * 0.045 * 4,
-              y: SCREEN_WIDTH * 0.045 * 0,
+              x: SCREEN_WIDTH * 0.03 * 4,
+              y: SCREEN_WIDTH * 0.03 * 0,
             }, ],
           },
 
@@ -258,42 +256,35 @@ phina.namespace(function() {
     },
   });
 
+  phina.define("glb.UILabel", {
+    superClass: "phina.display.Label",
+    init: function(options) {
+      options.fontFamily = "Share_Tech_Mono";
+      this.superInit(options);
+    },
+    renderFill: function(canvas) {
+      var context = canvas.context;
+      context.save();
+      context.translate(3, 3);
+      context.fillStyle = "hsl(190, 100%, 20%)";
+      this._lines.forEach(function(line, i) {
+        context.fillText(line, 0, i*this.lineSize+this._offset);
+      }, this);
+      context.restore();
+      context.save();
+      this._lines.forEach(function(line, i) {
+        context.fillText(line, 0, i*this.lineSize+this._offset);
+      }, this);
+      context.restore();
+    },
+  });
+
   phina.define("glb.ZankiSprite", {
-    superClass: "phina.display.Shape",
+    superClass: "phina.display.Sprite",
 
     init: function() {
       var size = SCREEN_WIDTH * 0.08;
-      this.superInit({
-        width: size,
-        height: size,
-        backgroundColor: "transparent",
-        fill: "hsl(240, 100%, 10%)",
-        stroke: "hsl(240, 100%, 80%)",
-        strokeWidth: 1,
-        padding: 0,
-      });
-
-      this.fromJSON({
-        children: [{
-          className: "phina.display.Sprite",
-          arguments: ["zanki", size * 0.75, size * 0.75],
-          x: size / 2,
-          y: size / 2,
-          originX: 0.5,
-          originY: 0.5,
-        }],
-      });
-    },
-
-    prerender: function(canvas) {
-      var size = SCREEN_WIDTH * 0.08;
-      canvas.moveTo(0, -size / 2);
-      canvas.lineTo(size / 2, 0);
-      canvas.lineTo(0, size / 2);
-      canvas.lineTo(-size / 2, 0);
-      canvas.closePath();
-      canvas.fill();
-      canvas.stroke();
+      this.superInit("zanki", size * 0.75, size * 0.75);
     },
   });
 
@@ -319,10 +310,9 @@ phina.namespace(function() {
           this.rotation += 5;
         },
         children: [{
-          className: "phina.display.Label",
+          className: "glb.UILabel",
           arguments: {
             text: "B",
-            fontFamily: "Aldrich",
             fill: "yellow",
             align: "center",
             baseline: "middle",

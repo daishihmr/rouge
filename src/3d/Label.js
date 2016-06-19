@@ -3,6 +3,7 @@ phina.namespace(function() {
   phina.define("glb.Label", {
     superClass: "phina.app.Element",
     
+    scale: 1.0,
     red: 1,
     green: 1,
     blue: 1,
@@ -61,10 +62,10 @@ phina.namespace(function() {
       var self = this;
       this.children.forEach(function(c, i) {
         c.visible = true;
-        c.x = self.x + i * 15 - self.text.length * 10;
+        c.x = self.x + (i - self.text.length / 2) * 15 * self.scale;
         c.y = self.y;
-        c.scaleX = 0.8 * 1.0;
-        c.scaleY = 0.8 * 2.0;
+        c.scaleX = self.scale * 1.0;
+        c.scaleY = self.scale * 2.0;
         c.red = self.red;
         c.green = self.green;
         c.blue = self.blue;

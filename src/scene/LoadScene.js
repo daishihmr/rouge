@@ -28,7 +28,7 @@ phina.namespace(function() {
       });
 
       var characterTexture = glb.CharacterTexture({
-        fontFamily: "Aldrich",
+        fontFamily: "Share_Tech_Mono",
         fontSize: 32,
         fill: "white",
         stroke: null,

@@ -177,15 +177,17 @@ phina.namespace(function() {
             .tweener
             .set({
               alpha: 1,
+              scale: 1,
             })
             .to({
               y: y - 30,
               value: value,
+              scale: Math.max(value / 3000, 1.0),
             }, 500, "easeOutQuad")
             .wait(50)
             .to({
               alpha: 0,
-            }, 200)
+            }, 400)
             .call(function() {
               label.remove();
             });

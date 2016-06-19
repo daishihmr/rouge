@@ -17,6 +17,14 @@ phina.namespace(function() {
     }
   });
   
-  
+  Number.prototype.$method("separateComma", function() {
+    var str = "" + this;
+    var result = "";
+    for (var i = 0, len = str.length; i < len; i++) {
+      if (i !== 0 && i % 3 === 0) result = "," + result;
+      result = str[len - i - 1] + result;
+    }
+    return result;
+  });
 
 });

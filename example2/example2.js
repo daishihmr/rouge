@@ -20,10 +20,11 @@ phina.namespace(function() {
               arguments: {
                 assets: {
                   image: {
-                    test: "__test.png",
-                    zanki: "../asset/image/zanki.png",
+                    "test": "__test.png",
+                    "zanki": "../asset/image/zanki.png",
                   },
                   font: {
+                    "Share_Tech_Mono": "../asset/font/Share_Tech_Mono/ShareTechMono-Regular.ttf",
                     "Aldrich": "../asset/font/Aldrich/Aldrich-Regular.ttf",
                   },
                 },

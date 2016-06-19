@@ -31,7 +31,7 @@
     }
 
     phina.main(function() {
-      phina.display.Label.defaults.fontFamily = "Aldrich";
+      phina.display.Label.defaults.fontFamily = "Share_Tech_Mono";
 
       phina.asset.AssetLoader()
         .on("load", function() {
@@ -39,6 +39,7 @@
         })
         .load({
           font: {
+            "Share_Tech_Mono": "./asset/font/Share_Tech_Mono/ShareTechMono-Regular.ttf",
             "Aldrich": "./asset/font/Aldrich/Aldrich-Regular.ttf"
           }
         });
