@@ -3144,7 +3144,12 @@ phina.namespace(function() {
                 "enemyS3.obj": "./asset/obj/enemyS3.obj",
                 "enemyS4.obj": "./asset/obj/enemyS4.obj",
                 "enemyS5.obj": "./asset/obj/enemyS5.obj",
+                "enemyS6.obj": "./asset/obj/enemyS6.obj",
+                "enemyS7.obj": "./asset/obj/enemyS7.obj",
                 "enemyM1.obj": "./asset/obj/enemyM1.obj",
+                "enemyM2.obj": "./asset/obj/enemyM2.obj",
+                "enemyM3.obj": "./asset/obj/enemyM3.obj",
+                "enemyM4.obj": "./asset/obj/enemyM4.obj",
               },
               textureSource: {
                 "enemyS1.png": "./asset/image/enemyS1.png",
@@ -3152,7 +3157,12 @@ phina.namespace(function() {
                 "enemyS3.png": "./asset/image/enemyS3.png",
                 "enemyS4.png": "./asset/image/enemyS4.png",
                 "enemyS5.png": "./asset/image/enemyS5.png",
+                "enemyS6.png": "./asset/image/enemyS6.png",
+                "enemyS7.png": "./asset/image/enemyS7.png",
                 "enemyM1.png": "./asset/image/enemyM1.png",
+                "enemyM2.png": "./asset/image/enemyM2.png",
+                "enemyM3.png": "./asset/image/enemyM3.png",
+                "enemyM4.png": "./asset/image/enemyM4.png",
               },
             };
           default:
@@ -3868,14 +3878,24 @@ phina.namespace(function() {
       player.setBarrier(barrier);
 
       // TODO atdks
-      for (var i = 0; i < 5; i++) {
-        var e = this.launchEnemy("enemyS" + Math.randint(1, 5), 0, "basic0", Math.randfloat(0.1, 0.9) * SCREEN_WIDTH, Math.randfloat(0.1, 0.5) * SCREEN_HEIGHT);
+      for (var i = 0; i < 7; i++) {
+        var e = this.launchEnemy("enemyS" + (i + 1), 0, "basic0", SCREEN_WIDTH * 0.3, -200 * i);
         if (e) {
           quat.setAxisAngle(e.quaternion, [0, 0, 1], (90).toRadian());
           e.dirty = true;
-          // e.on("enterframe", function() {
-          //   this.y += 1;
-          // });
+          e.on("enterframe", function() {
+            this.y += 2;
+          });
+        }
+      }
+      for (var i = 0; i < 4; i++) {
+        var e = this.launchEnemy("enemyM" + (i + 1), 0, "basic0", SCREEN_WIDTH * 0.7, -200 * i);
+        if (e) {
+          quat.setAxisAngle(e.quaternion, [0, 0, 1], (90).toRadian());
+          e.dirty = true;
+          e.on("enterframe", function() {
+            this.y += 2;
+          });
         }
       }
 
@@ -3886,7 +3906,7 @@ phina.namespace(function() {
 
           var x = Math.random() * SCREEN_WIDTH + 30;
           var y = Math.random() * SCREEN_HEIGHT;
-          
+
           explosion.small(x, y);
 
           var value = Math.randint(2, 9999);

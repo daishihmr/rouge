@@ -57,7 +57,12 @@ phina.namespace(function() {
                 "enemyS3.obj": "./asset/obj/enemyS3.obj",
                 "enemyS4.obj": "./asset/obj/enemyS4.obj",
                 "enemyS5.obj": "./asset/obj/enemyS5.obj",
+                "enemyS6.obj": "./asset/obj/enemyS6.obj",
+                "enemyS7.obj": "./asset/obj/enemyS7.obj",
                 "enemyM1.obj": "./asset/obj/enemyM1.obj",
+                "enemyM2.obj": "./asset/obj/enemyM2.obj",
+                "enemyM3.obj": "./asset/obj/enemyM3.obj",
+                "enemyM4.obj": "./asset/obj/enemyM4.obj",
               },
               textureSource: {
                 "enemyS1.png": "./asset/image/enemyS1.png",
@@ -65,7 +70,12 @@ phina.namespace(function() {
                 "enemyS3.png": "./asset/image/enemyS3.png",
                 "enemyS4.png": "./asset/image/enemyS4.png",
                 "enemyS5.png": "./asset/image/enemyS5.png",
+                "enemyS6.png": "./asset/image/enemyS6.png",
+                "enemyS7.png": "./asset/image/enemyS7.png",
                 "enemyM1.png": "./asset/image/enemyM1.png",
+                "enemyM2.png": "./asset/image/enemyM2.png",
+                "enemyM3.png": "./asset/image/enemyM3.png",
+                "enemyM4.png": "./asset/image/enemyM4.png",
               },
             };
           default:
